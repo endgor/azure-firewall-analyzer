@@ -2,6 +2,7 @@ import { useState, useCallback, useMemo } from 'react';
 import { Save, Download, Copy, Trash2, AlertCircle } from 'lucide-react';
 import type { ProcessedRule, ProcessedRuleCollectionGroup } from '../../types/firewall.types';
 import { exportToDraftJSON, generateAzureCLICommands } from '../../utils/draftExporter';
+import { SingleSelectDropdown, MultiSelectDropdown } from '../common/Dropdown';
 
 interface RuleEditorProps {
   groups: ProcessedRuleCollectionGroup[];
@@ -43,7 +44,7 @@ export function RuleEditor({ groups, policyName, onRulesChange }: RuleEditorProp
     return rules;
   }, [groups, editingRules]);
 
-  const handleFieldChange = useCallback((ruleId: string, field: string, value: string | string[]) => {
+  const handleFieldChange = useCallback((ruleId: string, field: string, value: string | string[] | any) => {
     setEditingRules(prev => {
       const existingRule = prev[ruleId] || allRules.find(r => (r as any).id === ruleId);
       if (!existingRule) return prev;
@@ -275,14 +276,14 @@ export function RuleEditor({ groups, policyName, onRulesChange }: RuleEditorProp
                     {rule.ruleType === 'NatRule' ? (
                       <span className="text-sm text-gray-500">DNAT</span>
                     ) : (
-                      <select
+                      <SingleSelectDropdown
                         value={(rule as any).action || 'Allow'}
-                        onChange={(e) => handleFieldChange(rule.id, 'action', e.target.value)}
-                        className="w-full text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      >
-                        <option value="Allow">Allow</option>
-                        <option value="Deny">Deny</option>
-                      </select>
+                        onChange={(value) => handleFieldChange(rule.id, 'action', value)}
+                        options={[
+                          { value: 'Allow', label: 'Allow' },
+                          { value: 'Deny', label: 'Deny' }
+                        ]}
+                      />
                     )}
                   </td>
                   
@@ -321,36 +322,53 @@ export function RuleEditor({ groups, policyName, onRulesChange }: RuleEditorProp
                   {/* Protocol */}
                   <td className="px-3 py-4">
                     {rule.ruleType === 'ApplicationRule' ? (
-                      <div className="text-sm text-gray-500">
-                        HTTP/HTTPS
-                      </div>
+                      <MultiSelectDropdown
+                        values={rule.protocols?.map((p: any) => p.protocolType) || []}
+                        onChange={(values) => {
+                          const protocols = values.map(type => ({
+                            protocolType: type,
+                            port: type === 'Http' ? 80 : type === 'Https' ? 443 : 80
+                          }));
+                          handleFieldChange(rule.id, 'protocols', protocols);
+                        }}
+                        options={[
+                          { value: 'Http', label: 'HTTP' },
+                          { value: 'Https', label: 'HTTPS' }
+                        ]}
+                        placeholder="Select protocols"
+                      />
                     ) : (
-                      <>
-                        <input
-                          type="text"
-                          value={rule.ipProtocols?.join(', ') || ''}
-                          onChange={(e) => handleFieldChange(rule.id, 'ipProtocols', e.target.value.split(',').map(s => s.trim()).filter(Boolean))}
-                          className="w-full p-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                          placeholder="TCP, UDP, ICMP"
-                          list={`protocols-${rule.id}`}
-                        />
-                        <datalist id={`protocols-${rule.id}`}>
-                          <option value="TCP" />
-                          <option value="UDP" />
-                          <option value="ICMP" />
-                          <option value="TCP, UDP" />
-                          <option value="Any" />
-                        </datalist>
-                      </>
+                      <MultiSelectDropdown
+                        values={rule.ipProtocols || []}
+                        onChange={(values) => handleFieldChange(rule.id, 'ipProtocols', values)}
+                        options={[
+                          { value: 'TCP', label: 'TCP' },
+                          { value: 'UDP', label: 'UDP' },
+                          { value: 'ICMP', label: 'ICMP' },
+                          { value: 'Any', label: 'Any' }
+                        ]}
+                        placeholder="Select protocols"
+                      />
                     )}
                   </td>
                   
                   {/* Ports */}
                   <td className="px-3 py-4">
                     {rule.ruleType === 'ApplicationRule' ? (
-                      <div className="text-sm text-gray-500">
-                        {rule.protocols?.map((p: any) => p.port || '80,443').join(', ') || '80,443'}
-                      </div>
+                      <input
+                        type="text"
+                        value={rule.protocols?.map((p: any) => p.port || '80').join(', ') || ''}
+                        onChange={(e) => {
+                          const ports = e.target.value.split(',').map(s => s.trim()).filter(Boolean);
+                          const updatedProtocols = rule.protocols?.map((p: any, index: number) => ({
+                            ...p,
+                            port: parseInt(ports[index] || ports[0] || '80', 10)
+                          })) || [];
+                          handleFieldChange(rule.id, 'protocols', updatedProtocols);
+                        }}
+                        className="w-full p-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        placeholder="80, 443, 8080"
+                      />
                     ) : (
                       <input
                         type="text"

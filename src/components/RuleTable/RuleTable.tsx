@@ -17,6 +17,7 @@ import type {
   RuleType,
   ActionType 
 } from '../../types/firewall.types';
+import { SingleSelectDropdown } from '../common/Dropdown';
 
 interface RuleTableProps {
   groups: ProcessedRuleCollectionGroup[];
@@ -263,27 +264,29 @@ export const RuleTable: React.FC<RuleTableProps> = ({
 
           {/* Filters */}
           <div className="flex gap-2">
-            <select
+            <SingleSelectDropdown
               value={filterByType}
-              onChange={(e) => setFilterByType(e.target.value as RuleType | 'all')}
-              className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            >
-              <option value="all">All Types</option>
-              <option value="NatRule">DNAT</option>
-              <option value="NetworkRule">Network</option>
-              <option value="ApplicationRule">Application</option>
-            </select>
+              onChange={(value) => setFilterByType(value as RuleType | 'all')}
+              options={[
+                { value: 'all', label: 'All Types' },
+                { value: 'NatRule', label: 'DNAT' },
+                { value: 'NetworkRule', label: 'Network' },
+                { value: 'ApplicationRule', label: 'Application' }
+              ]}
+              placeholder="Filter by type"
+            />
 
-            <select
+            <SingleSelectDropdown
               value={filterByAction}
-              onChange={(e) => setFilterByAction(e.target.value as ActionType | 'all')}
-              className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            >
-              <option value="all">All Actions</option>
-              <option value="Allow">Allow</option>
-              <option value="Deny">Deny</option>
-              <option value="Dnat">DNAT</option>
-            </select>
+              onChange={(value) => setFilterByAction(value as ActionType | 'all')}
+              options={[
+                { value: 'all', label: 'All Actions' },
+                { value: 'Allow', label: 'Allow' },
+                { value: 'Deny', label: 'Deny' },
+                { value: 'Dnat', label: 'DNAT' }
+              ]}
+              placeholder="Filter by action"
+            />
           </div>
         </div>
       </div>
