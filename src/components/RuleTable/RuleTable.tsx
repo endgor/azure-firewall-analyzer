@@ -158,6 +158,39 @@ export const RuleTable: React.FC<RuleTableProps> = ({
     }
   };
 
+  const getGroupDominantRuleType = (group: ProcessedRuleCollectionGroup) => {
+    const ruleCounts = { DNAT: 0, Network: 0, Application: 0 };
+    
+    group.processedCollections.forEach(collection => {
+      collection.processedRules.forEach(rule => {
+        if (rule.ruleType === 'NatRule') ruleCounts.DNAT++;
+        else if (rule.ruleType === 'NetworkRule') ruleCounts.Network++;
+        else if (rule.ruleType === 'ApplicationRule') ruleCounts.Application++;
+      });
+    });
+    
+    // Return the dominant type or fallback to mixed
+    const maxCount = Math.max(...Object.values(ruleCounts));
+    if (maxCount === 0) return 'mixed';
+    
+    const dominantType = Object.entries(ruleCounts).find(([_, count]) => count === maxCount)?.[0];
+    return dominantType || 'mixed';
+  };
+
+  const getShieldColorClass = (group: ProcessedRuleCollectionGroup) => {
+    const dominantType = getGroupDominantRuleType(group);
+    switch (dominantType) {
+      case 'DNAT':
+        return 'text-rule-dnat';
+      case 'Network':
+        return 'text-rule-network';
+      case 'Application':
+        return 'text-rule-application';
+      default:
+        return 'text-gray-600';
+    }
+  };
+
   const formatRuleDetails = (rule: ProcessedRule) => {
     switch (rule.ruleType) {
       case 'ApplicationRule':
@@ -230,22 +263,6 @@ export const RuleTable: React.FC<RuleTableProps> = ({
                 Collapse All
               </button>
             </div>
-            
-            {/* Rule Type Legend */}
-            <div className="flex items-center space-x-2 text-sm text-gray-500">
-              <span className="flex items-center">
-                <div className="w-3 h-3 bg-rule-dnat rounded mr-1"></div>
-                DNAT
-              </span>
-              <span className="flex items-center">
-                <div className="w-3 h-3 bg-rule-network rounded mr-1"></div>
-                Network
-              </span>
-              <span className="flex items-center">
-                <div className="w-3 h-3 bg-rule-application rounded mr-1"></div>
-                Application
-              </span>
-            </div>
           </div>
         </div>
 
@@ -274,6 +291,7 @@ export const RuleTable: React.FC<RuleTableProps> = ({
                 { value: 'ApplicationRule', label: 'Application' }
               ]}
               placeholder="Filter by type"
+              className="w-32"
             />
 
             <SingleSelectDropdown
@@ -286,6 +304,7 @@ export const RuleTable: React.FC<RuleTableProps> = ({
                 { value: 'Dnat', label: 'DNAT' }
               ]}
               placeholder="Filter by action"
+              className="w-32"
             />
           </div>
         </div>
@@ -334,7 +353,7 @@ export const RuleTable: React.FC<RuleTableProps> = ({
                   </td>
                   <td className="px-4 py-3 text-sm font-medium text-gray-900">
                     <div className="flex items-center">
-                      <Shield className="w-4 h-4 mr-2 text-gray-600" />
+                      <Shield className={`w-4 h-4 mr-2 ${getShieldColorClass(group)}`} />
                       {group.name}
                       {group.isParentPolicy && (
                         <span className="ml-2 px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded">

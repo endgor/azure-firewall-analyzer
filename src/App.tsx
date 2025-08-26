@@ -134,84 +134,85 @@ function App() {
               className="flex items-center hover:opacity-80 transition-opacity"
             >
               <Shield className="w-8 h-8 text-blue-600 mr-3" />
-              <h1 className="text-xl font-semibold text-gray-900">
-                Azure Firewall Rule Visualizer
+              <h1 className="text-lg font-semibold text-gray-900 whitespace-nowrap">
+                Azure Firewall Analyzer
               </h1>
             </button>
             {stats && (
-              <div className="flex items-center space-x-6 text-sm text-gray-600">
-                <div className="flex items-center">
-                  <BarChart3 className="w-4 h-4 mr-1" />
+              <div className="flex items-center space-x-2 text-sm text-gray-600">
+                <div className="flex items-center whitespace-nowrap">
+                  <BarChart3 className="w-3 h-3 mr-1" />
                   <span>{stats.totalRules} rules</span>
                 </div>
-                <div className="flex items-center">
-                  <FileText className="w-4 h-4 mr-1" />
+                <div className="flex items-center whitespace-nowrap">
+                  <FileText className="w-3 h-3 mr-1" />
                   <span>{stats.totalGroups} groups</span>
                 </div>
-                <div className="flex items-center space-x-4">
+                <div className="flex items-center space-x-2 whitespace-nowrap">
                   <span className="flex items-center">
                     <div className="w-3 h-3 bg-rule-dnat rounded mr-1"></div>
-                    {stats.rulesByCategory.DNAT}
+                    DNAT ({stats.rulesByCategory.DNAT})
                   </span>
                   <span className="flex items-center">
                     <div className="w-3 h-3 bg-rule-network rounded mr-1"></div>
-                    {stats.rulesByCategory.Network}
+                    Network ({stats.rulesByCategory.Network})
                   </span>
                   <span className="flex items-center">
                     <div className="w-3 h-3 bg-rule-application rounded mr-1"></div>
-                    {stats.rulesByCategory.Application}
+                    Application ({stats.rulesByCategory.Application})
                   </span>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1">
                   <button
                     onClick={() => handleViewChange('table')}
-                    className={`flex items-center px-3 py-1 rounded-md transition-colors ${
+                    className={`flex items-center px-2 py-1 rounded-md transition-colors text-sm ${
                       state.currentView === 'table'
                         ? 'bg-blue-200 text-blue-800'
                         : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                     }`}
                   >
                     <FileText className="w-4 h-4 mr-1" />
-                    <span>Table</span>
+                    <span className="hidden sm:inline">Table</span>
                   </button>
                   
                   <button
                     onClick={() => handleViewChange('mindmap')}
-                    className={`flex items-center px-3 py-1 rounded-md transition-colors ${
+                    className={`flex items-center px-2 py-1 rounded-md transition-colors text-sm ${
                       state.currentView === 'mindmap'
                         ? 'bg-blue-200 text-blue-800'
                         : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                     }`}
                   >
                     <Globe className="w-4 h-4 mr-1" />
-                    <span>Mind Map</span>
+                    <span className="hidden sm:inline">Mind Map</span>
                   </button>
                   
                   <button
                     onClick={() => handleViewChange('editor')}
-                    className={`flex items-center px-3 py-1 rounded-md transition-colors ${
+                    className={`flex items-center px-2 py-1 rounded-md transition-colors text-sm ${
                       state.currentView === 'editor'
                         ? 'bg-green-200 text-green-800'
                         : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                     }`}
                   >
                     <Edit3 className="w-4 h-4 mr-1" />
-                    <span>Editor</span>
+                    <span className="hidden sm:inline">Editor</span>
                   </button>
                   
                   {state.ruleAnalysis && (state.ruleAnalysis.duplicates.length > 0 || state.ruleAnalysis.conflicts.length > 0) && (
                     <button
                       onClick={() => handleViewChange('issues')}
-                      className={`flex items-center px-3 py-1 rounded-md transition-colors ${
+                      className={`flex items-center px-2 py-1 rounded-md transition-colors text-sm ${
                         state.currentView === 'issues'
                           ? 'bg-orange-200 text-orange-800'
                           : 'bg-orange-100 text-orange-700 hover:bg-orange-200'
                       }`}
                     >
                       <AlertTriangle className="w-4 h-4 mr-1" />
-                      <span>
+                      <span className="hidden sm:inline">
                         Issues ({state.ruleAnalysis.duplicates.length + state.ruleAnalysis.conflicts.length})
                       </span>
+                      <span className="sm:hidden">({state.ruleAnalysis.duplicates.length + state.ruleAnalysis.conflicts.length})</span>
                     </button>
                   )}
                 </div>
