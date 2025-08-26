@@ -71,7 +71,7 @@ export class FirewallPolicyParser {
       const policy: FirewallPolicy = {
         type: policyResource.type as 'Microsoft.Network/firewallPolicies',
         apiVersion: policyResource.apiVersion,
-        name: this.extractPolicyName(policyResource.name),
+        name: this.extractPolicyName(policyResource.name, template.parameters),
         location: policyResource.location,
         tags: policyResource.tags,
         identity: policyResource.identity,
@@ -93,12 +93,19 @@ export class FirewallPolicyParser {
   /**
    * Extract policy name from ARM template expression
    */
-  private static extractPolicyName(nameExpression: string): string {
+  private static extractPolicyName(nameExpression: string, parameters?: any): string {
     // Handle ARM template expressions like "[parameters('firewallPolicies_name')]"
     if (nameExpression.startsWith('[') && nameExpression.endsWith(']')) {
       const match = nameExpression.match(/parameters\('([^']+)'\)/);
-      if (match) {
-        return match[1];
+      if (match && parameters) {
+        const paramName = match[1];
+        // Look up the parameter's defaultValue in the parameters section
+        const paramDef = parameters[paramName];
+        if (paramDef && paramDef.defaultValue) {
+          return paramDef.defaultValue;
+        }
+        // Fall back to parameter name if no defaultValue found
+        return paramName;
       }
     }
     return nameExpression;

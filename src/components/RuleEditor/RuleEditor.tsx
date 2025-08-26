@@ -28,7 +28,14 @@ export function RuleEditor({ groups, policyName, onRulesChange }: RuleEditorProp
         collection.rules.forEach((rule, index) => {
           const ruleId = `${group.name}-${collection.name}-${index}`;
           const editedRule = editingRules[ruleId];
-          const ruleWithId = { ...rule, id: ruleId };
+          const ruleWithId = { 
+            ...rule, 
+            id: ruleId,
+            collectionGroupName: group.name,
+            collectionName: collection.name,
+            groupPriority: group.priority,
+            collectionPriority: collection.priority
+          };
           rules.push(editedRule || ruleWithId);
         });
       });
@@ -46,7 +53,12 @@ export function RuleEditor({ groups, policyName, onRulesChange }: RuleEditorProp
         [ruleId]: {
           ...existingRule,
           [field]: value,
-          isModified: true
+          isModified: true,
+          // Preserve collection metadata
+          collectionGroupName: existingRule.collectionGroupName,
+          collectionName: existingRule.collectionName,
+          groupPriority: existingRule.groupPriority,
+          collectionPriority: existingRule.collectionPriority
         }
       };
     });
@@ -215,7 +227,7 @@ export function RuleEditor({ groups, policyName, onRulesChange }: RuleEditorProp
                 Destination
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Protocols/Ports
+                Protocols/Ports/Translation
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Actions
@@ -311,14 +323,30 @@ export function RuleEditor({ groups, policyName, onRulesChange }: RuleEditorProp
                           className="w-full p-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                           placeholder="TCP, UDP, ICMP"
                         />
-                        {rule.ruleType !== 'NatRule' && (
-                          <input
-                            type="text"
-                            value={rule.destinationPorts?.join(', ') || ''}
-                            onChange={(e) => handleFieldChange(rule.id, 'destinationPorts', e.target.value.split(',').map(s => s.trim()).filter(Boolean))}
-                            className="w-full p-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                            placeholder="Ports (e.g., 80, 443, 8080-8090)"
-                          />
+                        <input
+                          type="text"
+                          value={rule.destinationPorts?.join(', ') || ''}
+                          onChange={(e) => handleFieldChange(rule.id, 'destinationPorts', e.target.value.split(',').map(s => s.trim()).filter(Boolean))}
+                          className="w-full p-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          placeholder="Ports (e.g., 80, 443, 8080-8090)"
+                        />
+                        {rule.ruleType === 'NatRule' && (
+                          <div className="space-y-1">
+                            <input
+                              type="text"
+                              value={rule.translatedAddress || ''}
+                              onChange={(e) => handleFieldChange(rule.id, 'translatedAddress', e.target.value)}
+                              className="w-full p-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                              placeholder="Translated IP Address"
+                            />
+                            <input
+                              type="text"
+                              value={rule.translatedPort || ''}
+                              onChange={(e) => handleFieldChange(rule.id, 'translatedPort', e.target.value)}
+                              className="w-full p-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                              placeholder="Translated Port"
+                            />
+                          </div>
                         )}
                       </div>
                     )}

@@ -33,23 +33,28 @@ export function exportToDraftJSON(rules: ProcessedRule[]): DraftRuleData {
 
   // Group rules by collection group and collection
   rules.forEach(rule => {
-    const groupKey = `${rule.collectionGroupName}-${rule.groupPriority}`;
+    const groupName = rule.collectionGroupName || 'DefaultRuleCollectionGroup';
+    const groupPriority = rule.groupPriority || 100;
+    const collectionName = rule.collectionName || 'DefaultRuleCollection';
+    const collectionPriority = rule.collectionPriority || 100;
+    
+    const groupKey = `${groupName}-${groupPriority}`;
     
     if (!groupedRules.has(groupKey)) {
       groupedRules.set(groupKey, {
-        groupName: rule.collectionGroupName,
-        groupPriority: rule.groupPriority,
+        groupName: groupName,
+        groupPriority: groupPriority,
         collections: new Map()
       });
     }
 
     const group = groupedRules.get(groupKey)!;
-    const collectionKey = `${rule.collectionName}-${rule.collectionPriority}`;
+    const collectionKey = `${collectionName}-${collectionPriority}`;
     
     if (!group.collections.has(collectionKey)) {
       group.collections.set(collectionKey, {
-        collectionName: rule.collectionName,
-        collectionPriority: rule.collectionPriority,
+        collectionName: collectionName,
+        collectionPriority: collectionPriority,
         ruleType: rule.ruleType,
         rules: []
       });
@@ -113,7 +118,9 @@ export function generateAzureCLICommands(
   // Group rules by collection
   const groupedRules = new Map<string, ProcessedRule[]>();
   rules.forEach(rule => {
-    const key = `${rule.collectionGroupName}/${rule.collectionName}`;
+    const groupName = rule.collectionGroupName || 'DefaultRuleCollectionGroup';
+    const collectionName = rule.collectionName || 'DefaultRuleCollection';
+    const key = `${groupName}/${collectionName}`;
     if (!groupedRules.has(key)) {
       groupedRules.set(key, []);
     }
