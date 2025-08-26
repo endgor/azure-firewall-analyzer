@@ -211,25 +211,34 @@ export function RuleEditor({ groups, policyName, onRulesChange }: RuleEditorProp
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-48">
                 Rule Name
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24">
                 Type
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-20">
                 Action
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-40">
                 Source
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-40">
                 Destination
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Protocols/Ports/Translation
+              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32">
+                Protocol
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32">
+                Ports
+              </th>
+              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32">
+                Translated Address
+              </th>
+              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24">
+                Translated Port
+              </th>
+              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-20">
                 Actions
               </th>
             </tr>
@@ -240,21 +249,18 @@ export function RuleEditor({ groups, policyName, onRulesChange }: RuleEditorProp
               
               return (
                 <tr key={rule.id} className={isEdited ? 'bg-amber-50' : undefined}>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  {/* Rule Name */}
+                  <td className="px-3 py-4">
                     <input
                       type="text"
                       value={rule.name}
                       onChange={(e) => handleFieldChange(rule.id, 'name', e.target.value)}
-                      className="w-full p-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full p-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
-                    {isEdited && (
-                      <span className="inline-flex items-center px-2 py-1 mt-1 text-xs font-medium bg-amber-100 text-amber-800 rounded-full">
-                        Modified
-                      </span>
-                    )}
                   </td>
                   
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  {/* Type */}
+                  <td className="px-3 py-4">
                     <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
                       rule.ruleType === 'NatRule' ? 'bg-blue-100 text-blue-800' :
                       rule.ruleType === 'NetworkRule' ? 'bg-green-100 text-green-800' :
@@ -264,14 +270,15 @@ export function RuleEditor({ groups, policyName, onRulesChange }: RuleEditorProp
                     </span>
                   </td>
                   
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  {/* Action */}
+                  <td className="px-3 py-4">
                     {rule.ruleType === 'NatRule' ? (
                       <span className="text-sm text-gray-500">DNAT</span>
                     ) : (
                       <select
                         value={(rule as any).action || 'Allow'}
                         onChange={(e) => handleFieldChange(rule.id, 'action', e.target.value)}
-                        className="text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        className="w-full text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       >
                         <option value="Allow">Allow</option>
                         <option value="Deny">Deny</option>
@@ -279,80 +286,114 @@ export function RuleEditor({ groups, policyName, onRulesChange }: RuleEditorProp
                     )}
                   </td>
                   
-                  <td className="px-6 py-4">
+                  {/* Source */}
+                  <td className="px-3 py-4">
                     <textarea
                       value={rule.sourceAddresses?.join(', ') || ''}
                       onChange={(e) => handleFieldChange(rule.id, 'sourceAddresses', e.target.value.split(',').map(s => s.trim()).filter(Boolean))}
-                      className="w-full p-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full p-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       rows={2}
-                      placeholder="Enter source addresses (comma-separated)"
+                      placeholder="Source addresses"
                     />
                   </td>
                   
-                  <td className="px-6 py-4">
+                  {/* Destination */}
+                  <td className="px-3 py-4">
                     {rule.ruleType === 'ApplicationRule' ? (
                       <textarea
                         value={rule.targetFqdns?.join(', ') || ''}
                         onChange={(e) => handleFieldChange(rule.id, 'targetFqdns', e.target.value.split(',').map(s => s.trim()).filter(Boolean))}
-                        className="w-full p-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        className="w-full p-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                         rows={2}
-                        placeholder="Enter FQDNs (comma-separated)"
+                        placeholder="Target FQDNs"
                       />
                     ) : (
                       <textarea
                         value={rule.destinationAddresses?.join(', ') || ''}
                         onChange={(e) => handleFieldChange(rule.id, 'destinationAddresses', e.target.value.split(',').map(s => s.trim()).filter(Boolean))}
-                        className="w-full p-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        className="w-full p-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                         rows={2}
-                        placeholder="Enter destination addresses (comma-separated)"
+                        placeholder="Destination addresses"
                       />
                     )}
                   </td>
                   
-                  <td className="px-6 py-4">
+                  {/* Protocol */}
+                  <td className="px-3 py-4">
                     {rule.ruleType === 'ApplicationRule' ? (
-                      <div className="text-sm text-gray-900">
-                        {rule.protocols?.map((p: any) => `${p.protocolType}:${p.port}`).join(', ') || 'Any'}
+                      <div className="text-sm text-gray-500">
+                        HTTP/HTTPS
                       </div>
                     ) : (
-                      <div className="space-y-1">
+                      <>
                         <input
                           type="text"
                           value={rule.ipProtocols?.join(', ') || ''}
                           onChange={(e) => handleFieldChange(rule.id, 'ipProtocols', e.target.value.split(',').map(s => s.trim()).filter(Boolean))}
-                          className="w-full p-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          className="w-full p-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                           placeholder="TCP, UDP, ICMP"
+                          list={`protocols-${rule.id}`}
                         />
-                        <input
-                          type="text"
-                          value={rule.destinationPorts?.join(', ') || ''}
-                          onChange={(e) => handleFieldChange(rule.id, 'destinationPorts', e.target.value.split(',').map(s => s.trim()).filter(Boolean))}
-                          className="w-full p-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                          placeholder="Ports (e.g., 80, 443, 8080-8090)"
-                        />
-                        {rule.ruleType === 'NatRule' && (
-                          <div className="space-y-1">
-                            <input
-                              type="text"
-                              value={rule.translatedAddress || ''}
-                              onChange={(e) => handleFieldChange(rule.id, 'translatedAddress', e.target.value)}
-                              className="w-full p-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                              placeholder="Translated IP Address"
-                            />
-                            <input
-                              type="text"
-                              value={rule.translatedPort || ''}
-                              onChange={(e) => handleFieldChange(rule.id, 'translatedPort', e.target.value)}
-                              className="w-full p-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                              placeholder="Translated Port"
-                            />
-                          </div>
-                        )}
-                      </div>
+                        <datalist id={`protocols-${rule.id}`}>
+                          <option value="TCP" />
+                          <option value="UDP" />
+                          <option value="ICMP" />
+                          <option value="TCP, UDP" />
+                          <option value="Any" />
+                        </datalist>
+                      </>
                     )}
                   </td>
                   
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  {/* Ports */}
+                  <td className="px-3 py-4">
+                    {rule.ruleType === 'ApplicationRule' ? (
+                      <div className="text-sm text-gray-500">
+                        {rule.protocols?.map((p: any) => p.port || '80,443').join(', ') || '80,443'}
+                      </div>
+                    ) : (
+                      <input
+                        type="text"
+                        value={rule.destinationPorts?.join(', ') || ''}
+                        onChange={(e) => handleFieldChange(rule.id, 'destinationPorts', e.target.value.split(',').map(s => s.trim()).filter(Boolean))}
+                        className="w-full p-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        placeholder="80,443,8080"
+                      />
+                    )}
+                  </td>
+                  
+                  {/* Translated Address */}
+                  <td className="px-3 py-4">
+                    {rule.ruleType === 'NatRule' ? (
+                      <input
+                        type="text"
+                        value={rule.translatedAddress || ''}
+                        onChange={(e) => handleFieldChange(rule.id, 'translatedAddress', e.target.value)}
+                        className="w-full p-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        placeholder="10.0.0.1"
+                      />
+                    ) : (
+                      <span className="text-sm text-gray-400">N/A</span>
+                    )}
+                  </td>
+                  
+                  {/* Translated Port */}
+                  <td className="px-3 py-4">
+                    {rule.ruleType === 'NatRule' ? (
+                      <input
+                        type="text"
+                        value={rule.translatedPort || ''}
+                        onChange={(e) => handleFieldChange(rule.id, 'translatedPort', e.target.value)}
+                        className="w-full p-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        placeholder="3389"
+                      />
+                    ) : (
+                      <span className="text-sm text-gray-400">N/A</span>
+                    )}
+                  </td>
+                  
+                  {/* Actions */}
+                  <td className="px-3 py-4 text-center">
                     <button
                       onClick={() => handleDeleteRule(rule.id)}
                       className="text-red-600 hover:text-red-900"
