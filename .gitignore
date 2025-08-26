@@ -138,5 +138,18 @@ tmp/
 !postcss.config.js
 !docker-compose.yml
 
+# Test output directories
+test-results/
+
+# Vitest specific
+.vitest/
+
+# Docker volumes/data
+docker-data/
+volumes/
+
+# OS files (additional)
+**/.DS_Store
+
 # Claude agent files
 .claude/
