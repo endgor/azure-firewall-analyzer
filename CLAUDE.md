@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Azure Firewall Analyzer is a React-based web application for visualizing and analyzing Azure Firewall policies. It parses Azure Firewall Policy JSON exports, processes rules according to Azure's priority logic, and provides interactive visualization with duplicate detection and conflict analysis.
+Azure Firewall Analyzer is a React-based web application for visualizing and analyzing Azure Firewall policies. It parses Azure Firewall Policy JSON exports, processes rules according to Azure's priority logic, and provides interactive visualization with duplicate detection and conflict analysis. The application runs entirely in the browser with no external dependencies, ensuring user data privacy and security.
 
 ## Development Commands
 
@@ -63,21 +63,30 @@ Uses React state with reducer pattern via `useState` in main App component. Key 
 - **RuleMindMap**: Interactive node-based visualization using ReactFlow
 - **IssuesView**: Dedicated view for duplicates and conflicts
 - **RuleAnalysisPanel**: Side panel for detailed rule analysis
+- **RuleEditor**: Editable table for modifying rules with Azure CLI export capability
 
 #### Utilities
 - **utils/parser.ts**: Parses Azure ARM template JSON structure
 - **utils/ruleProcessor.ts**: Implements Azure Firewall rule processing order
 - **utils/ruleAnalyzer.ts**: Detects duplicates, conflicts, and optimization opportunities
 - **utils/exportUtils.ts**: Export functionality for processed rule data
+- **utils/draftExporter.ts**: Generates Azure CLI commands for rule modifications
 
 ### Data Flow
-1. User uploads Azure Firewall Policy JSON export
-2. `FirewallPolicyParser.parseFirewallPolicy()` extracts rules
+1. User uploads Azure Firewall Policy JSON export via FileUpload component
+2. `FirewallPolicyParser.parseFirewallPolicy()` extracts rules from ARM template
 3. `RuleProcessor.processFirewallPolicy()` applies Azure priority logic
 4. `RuleAnalyzer.analyzeRules()` detects issues and optimizations
-5. UI renders processed data in table, mindmap, or issues view
+5. UI renders processed data in table, mindmap, issues, or editor view
+6. Optional: RuleEditor allows modifications and exports Azure CLI commands
 
 ## Key Technical Details
+
+### Privacy & Security Architecture
+- **Client-side only processing**: All rule parsing and analysis happens in the browser
+- **No external API calls**: Zero data transmission to external servers
+- **No persistent storage**: No user data stored locally or remotely  
+- **Secure by design**: Sensitive firewall configurations never leave the user's machine
 
 ### Azure Firewall Rule Processing Logic
 The application implements the exact rule processing order used by Azure Firewall:
@@ -125,6 +134,8 @@ Each processed rule includes:
 - **Duplicate Detection**: Rules with identical source, destination, ports, protocols
 - **Conflict Detection**: Allow/Deny conflicts, rule shadowing, overlapping permissions
 - **Optimization Suggestions**: Rule combination opportunities, unused IP groups
+- **Rule Editing**: Interactive table editor with single-line inputs for source, destination, and protocol fields
+- **Azure CLI Export**: Generate draft policy commands and deployment scripts for rule modifications
 
 ## Development Tips
 
@@ -133,6 +144,8 @@ Each processed rule includes:
 - Follow the existing processing pipeline: parse → process → analyze → render
 - Use existing utility classes (`RuleProcessor`, `RuleAnalyzer`) for rule logic
 - Maintain separation between Azure rule logic and UI presentation logic
+- Components follow a modular structure with index.ts barrel exports
+- Use Tailwind CSS for consistent styling with established rule type color scheme
 
 ### Testing with Real Data
 - **Real Azure Data**: Export policies from Azure Portal: Firewall Policy → Export template → Download
