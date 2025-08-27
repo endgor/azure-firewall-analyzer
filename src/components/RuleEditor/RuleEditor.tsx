@@ -289,11 +289,11 @@ export function RuleEditor({ groups, policyName, onRulesChange }: RuleEditorProp
                   
                   {/* Source */}
                   <td className="px-3 py-4">
-                    <textarea
+                    <input
+                      type="text"
                       value={rule.sourceAddresses?.join(', ') || ''}
                       onChange={(e) => handleFieldChange(rule.id, 'sourceAddresses', e.target.value.split(',').map(s => s.trim()).filter(Boolean))}
                       className="w-full p-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      rows={2}
                       placeholder="Source addresses"
                     />
                   </td>
@@ -301,19 +301,19 @@ export function RuleEditor({ groups, policyName, onRulesChange }: RuleEditorProp
                   {/* Destination */}
                   <td className="px-3 py-4">
                     {rule.ruleType === 'ApplicationRule' ? (
-                      <textarea
+                      <input
+                        type="text"
                         value={rule.targetFqdns?.join(', ') || ''}
                         onChange={(e) => handleFieldChange(rule.id, 'targetFqdns', e.target.value.split(',').map(s => s.trim()).filter(Boolean))}
                         className="w-full p-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        rows={2}
                         placeholder="Target FQDNs"
                       />
                     ) : (
-                      <textarea
+                      <input
+                        type="text"
                         value={rule.destinationAddresses?.join(', ') || ''}
                         onChange={(e) => handleFieldChange(rule.id, 'destinationAddresses', e.target.value.split(',').map(s => s.trim()).filter(Boolean))}
                         className="w-full p-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        rows={2}
                         placeholder="Destination addresses"
                       />
                     )}
@@ -322,32 +322,27 @@ export function RuleEditor({ groups, policyName, onRulesChange }: RuleEditorProp
                   {/* Protocol */}
                   <td className="px-3 py-4">
                     {rule.ruleType === 'ApplicationRule' ? (
-                      <MultiSelectDropdown
-                        values={rule.protocols?.map((p: any) => p.protocolType) || []}
-                        onChange={(values) => {
-                          const protocols = values.map(type => ({
+                      <input
+                        type="text"
+                        value={rule.protocols?.map((p: any) => p.protocolType).join(', ') || ''}
+                        onChange={(e) => {
+                          const types = e.target.value.split(',').map(s => s.trim()).filter(Boolean);
+                          const protocols = types.map(type => ({
                             protocolType: type,
                             port: type === 'Http' ? 80 : type === 'Https' ? 443 : 80
                           }));
                           handleFieldChange(rule.id, 'protocols', protocols);
                         }}
-                        options={[
-                          { value: 'Http', label: 'HTTP' },
-                          { value: 'Https', label: 'HTTPS' }
-                        ]}
-                        placeholder="Select protocols"
+                        className="w-full p-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        placeholder="Http, Https"
                       />
                     ) : (
-                      <MultiSelectDropdown
-                        values={rule.ipProtocols || []}
-                        onChange={(values) => handleFieldChange(rule.id, 'ipProtocols', values)}
-                        options={[
-                          { value: 'TCP', label: 'TCP' },
-                          { value: 'UDP', label: 'UDP' },
-                          { value: 'ICMP', label: 'ICMP' },
-                          { value: 'Any', label: 'Any' }
-                        ]}
-                        placeholder="Select protocols"
+                      <input
+                        type="text"
+                        value={rule.ipProtocols?.join(', ') || ''}
+                        onChange={(e) => handleFieldChange(rule.id, 'ipProtocols', e.target.value.split(',').map(s => s.trim()).filter(Boolean))}
+                        className="w-full p-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        placeholder="TCP, UDP, ICMP"
                       />
                     )}
                   </td>
