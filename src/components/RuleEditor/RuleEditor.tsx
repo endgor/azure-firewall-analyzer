@@ -2,7 +2,7 @@ import { useState, useCallback, useMemo } from 'react';
 import { Save, Download, Copy, Trash2, AlertCircle } from 'lucide-react';
 import type { ProcessedRule, ProcessedRuleCollectionGroup } from '../../types/firewall.types';
 import { exportToDraftJSON, generateAzureCLICommands } from '../../utils/draftExporter';
-import { SingleSelectDropdown, MultiSelectDropdown } from '../common/Dropdown';
+import { SingleSelectDropdown } from '../common/Dropdown';
 
 interface RuleEditorProps {
   groups: ProcessedRuleCollectionGroup[];
