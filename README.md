@@ -1,11 +1,8 @@
 # Azure Firewall Analyzer
+A web-based tool for visualizing, analyzing, and optimizing Azure Firewall policies. Upload your Azure Firewall Policy exports to understand rule processing order, identify duplicates and conflicts, and optimize your firewall configuration.
 
-# !! WIP - USE AT OWN RISK !!
+# !! THIS PROJECT IS WIP !!
 
-
-A powerful web-based tool for visualizing, analyzing, and optimizing Azure Firewall policies. Upload your Azure Firewall Policy exports to understand rule processing order, identify duplicates and conflicts, and optimize your firewall configuration.
-
-![Azure Firewall Analyzer](https://img.shields.io/badge/Azure-Firewall%20Analyzer-blue?style=flat-square&logo=microsoft-azure)
 ![React](https://img.shields.io/badge/React-19.1-blue?style=flat-square&logo=react)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.8-blue?style=flat-square&logo=typescript)
 ![Docker](https://img.shields.io/badge/Docker-Ready-blue?style=flat-square&logo=docker)
