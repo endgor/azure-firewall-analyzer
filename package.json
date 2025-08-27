@@ -7,15 +7,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview",
-    "test": "vitest",
-    "test:ui": "vitest --ui",
-    "test:run": "vitest run",
-    "test:watch": "vitest --watch",
-    "test:coverage": "vitest run --coverage",
-    "check": "npm run lint && npm run test:run",
-    "test-and-build": "npm run test:run && npm run build",
-    "verify": "npm run check && npm run build"
+    "preview": "vite preview"
   },
   "dependencies": {
     "lucide-react": "^0.541.0",
@@ -26,25 +18,19 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.33.0",
-    "@testing-library/jest-dom": "^6.8.0",
-    "@testing-library/react": "^16.3.0",
     "@types/node": "^24.3.0",
     "@types/react": "^19.1.10",
     "@types/react-dom": "^19.1.7",
     "@vitejs/plugin-react": "^5.0.0",
-    "@vitest/coverage-v8": "^3.2.4",
-    "@vitest/ui": "^3.2.4",
     "autoprefixer": "^10.4.20",
     "eslint": "^9.33.0",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.20",
     "globals": "^16.3.0",
-    "jsdom": "^26.1.0",
     "postcss": "^8.4.47",
     "tailwindcss": "^3.4.16",
     "typescript": "~5.8.3",
     "typescript-eslint": "^8.39.1",
-    "vite": "^7.1.2",
-    "vitest": "^3.2.4"
+    "vite": "^7.1.2"
   }
 }

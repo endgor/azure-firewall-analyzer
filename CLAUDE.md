@@ -14,35 +14,6 @@ Azure Firewall Analyzer is a React-based web application for visualizing and ana
 - `npm run preview` - Preview production build locally
 - `npm run lint` - Run ESLint on the codebase
 
-### Testing
-- **Test Framework**: Vitest with React Testing Library
-- **Test Commands**:
-  - `npm test` - Run tests in watch mode during development
-  - `npm run test:run` - Run all tests once (for CI/CD)
-  - `npm run test:ui` - Open Vitest UI for interactive testing
-  - `npm run test:coverage` - Generate test coverage reports
-  - `npm run check` - Run both linting and tests (recommended before commits)
-  - `npm run test-and-build` - Run tests then build (recommended before Docker rebuild)
-  - `npm run verify` - Full verification: lint + test + build (when linting errors are resolved)
-
-#### Testing Requirements
-**CRITICAL**: After making any of the following changes, ALWAYS run tests:
-- Modifications to `src/utils/parser.ts`, `ruleProcessor.ts`, or `ruleAnalyzer.ts`
-- Changes to rule processing logic or Azure Firewall priority implementation
-- Updates to TypeScript interfaces in `src/types/firewall.types.ts`
-- React component modifications that affect functionality
-- Bug fixes or new feature implementations
-
-**Testing Workflow**:
-1. Run `npm run test-and-build` to verify tests pass and code builds successfully
-2. If any step fails, fix the issues before proceeding
-3. Add new tests for new functionality (test-first development encouraged)
-4. Ensure test coverage remains above 80% for core utilities
-5. Use test fixtures in `src/test/fixtures/` for consistent test data
-6. **After tests and build pass**: Rebuild Docker containers to reflect latest changes
-
-**Note**: Full linting verification (`npm run verify`) recommended but not required for Docker rebuild due to pre-existing codebase linting issues.
-
 ### Docker Commands
 - `docker-compose up --build` - Run production build in Docker (port 3000)
 - `docker-compose --profile dev up azure-firewall-analyzer-dev` - Run development server in Docker with hot reload (port 5173)
@@ -164,16 +135,11 @@ Each processed rule includes:
 - Maintain separation between Azure rule logic and UI presentation logic
 
 ### Testing with Real Data
-- **Test Fixtures**: Use predefined fixtures in `src/test/fixtures/` for consistent testing:
-  - `minimal-policy.json` - Simple policy with one rule for basic tests
-  - `complex-policy.json` - Multi-group policy with all rule types for integration tests
-  - `duplicate-rules-policy.json` - Policy with intentional duplicates for analyzer tests
-  - `invalid-policy.json` - Malformed policy for error handling tests
 - **Real Azure Data**: Export policies from Azure Portal: Firewall Policy → Export template → Download
 - Use `template.json` file (not `parameters.json`)
 - Test with policies containing multiple rule collection groups and rule types
 - Verify processing order matches Azure Portal's rule precedence display
-- **Validation**: Always validate that test results match Azure's documented behavior
+- **Validation**: Always validate that results match Azure's documented behavior
 
 ### Debugging
 - Processing results logged to browser console with detailed rule analysis
@@ -186,7 +152,7 @@ Each processed rule includes:
 The project includes a specialized subagent for automatic Docker container management located at `.claude/agents/docker-rebuild.md`. 
 
 **When to Trigger Docker Rebuild:**
-After making any of the following changes **and all tests pass**, use the Task tool to launch the `general-purpose` subagent with a prompt to "rebuild Docker containers to reflect latest code changes":
+After making any of the following changes, use the Task tool to launch the `general-purpose` subagent with a prompt to "rebuild Docker containers to reflect latest code changes":
 - Source code changes (TypeScript/React files in `src/`)
 - Dependency changes (package.json modifications)
 - Build configuration changes (vite.config.ts, tsconfig.json)
@@ -194,7 +160,6 @@ After making any of the following changes **and all tests pass**, use the Task t
 - Any changes that affect the built application
 
 **Required Prerequisites:**
-- All tests must pass (`npm run test:run` ✅)
 - No linting errors (`npm run lint` ✅)
 - Code changes are complete and verified
 
