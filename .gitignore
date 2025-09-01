@@ -137,6 +137,7 @@ tmp/
 !tailwind.config.js
 !postcss.config.js
 !docker-compose.yml
+!staticwebapp.config.json
 
 # Test output directories
 test-results/

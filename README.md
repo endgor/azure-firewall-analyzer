@@ -67,6 +67,16 @@ docker build -t azure-firewall-analyzer .
 docker run -p 3000:80 azure-firewall-analyzer
 ```
 
+### Option 4: Azure Static Web Apps (Free Tier)
+Deploy the built static files using [Azure Static Web Apps](https://azure.microsoft.com/products/app-service/static) for a cost-free hosting option.
+
+1. Fork this repository to your own GitHub account.
+2. Create a **Static Web App** in the Azure portal and choose the Free plan.
+3. During setup, set the build output folder to `dist` and provide the deployment token as the secret `AZURE_STATIC_WEB_APPS_API_TOKEN` in your GitHub repository.
+4. Push changes to the `work` branch. The included GitHub workflow will build the app and deploy the `dist` folder automatically.
+
+> The workflow file is located at `.github/workflows/azure-static-web-app.yml` and uses the `staticwebapp.config.json` file to support client-side routing.
+
 ## 📋 How to Use
 
 ### 1. Export Your Azure Firewall Policy
