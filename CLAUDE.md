@@ -14,15 +14,10 @@ Azure Firewall Analyzer is a React-based web application for visualizing and ana
 - `npm run preview` - Preview production build locally
 - `npm run lint` - Run ESLint on the codebase
 
-### Docker Commands
-- `docker-compose up --build` - Run production build in Docker (port 3000)
-- `docker-compose --profile dev up azure-firewall-analyzer-dev` - Run development server in Docker with hot reload (port 5173)
-- `docker-compose down` - Stop and remove containers
-
 ### Build Requirements
 - Always run TypeScript compilation before Vite build (handled by build script)
-- Production Docker build uses Node 20 Alpine with Nginx for serving
-- Code changes require Docker rebuild unless using development profile
+- Production build outputs to `dist/` directory for static hosting
+- Azure Static Web Apps deployment handled automatically via GitHub Actions
 
 ## Architecture Overview
 
@@ -159,28 +154,31 @@ Each processed rule includes:
 - Use browser React DevTools to inspect component state
 - Rule processing order can be verified against Azure Portal's numbering
 
-## Automated Docker Management
+## Azure Static Web Apps Deployment
 
-### Docker Rebuild Subagent
-The project includes a specialized subagent for automatic Docker container management located at `.claude/agents/docker-rebuild.md`. 
+### Deployment Configuration
+The project is configured for automatic deployment to Azure Static Web Apps using GitHub Actions:
 
-**When to Trigger Docker Rebuild:**
-After making any of the following changes, use the Task tool to launch the `general-purpose` subagent with a prompt to "rebuild Docker containers to reflect latest code changes":
-- Source code changes (TypeScript/React files in `src/`)
-- Dependency changes (package.json modifications)
-- Build configuration changes (vite.config.ts, tsconfig.json)
-- Docker configuration changes (Dockerfile, docker-compose.yml)
-- Any changes that affect the built application
+- **Workflow**: `.github/workflows/azure-static-web-apps.yml`
+- **Build Command**: `npm run build` (TypeScript compilation + Vite build)
+- **Output Directory**: `dist/` (static files for hosting)
+- **Routing**: `staticwebapp.config.json` handles client-side routing for React SPA
 
-**Required Prerequisites:**
-- No linting errors (`npm run lint` ✅)
-- Code changes are complete and verified
+### Deployment Process
+1. Push changes to `main` branch or create pull request
+2. GitHub Actions automatically triggers build and deployment
+3. Azure Static Web Apps builds the application using Node.js
+4. Static files from `dist/` directory are deployed to Azure CDN
+5. Application is available at the assigned Azure Static Web Apps URL
 
-**Auto-rebuild Process:**
-1. Stop existing containers gracefully
-2. Rebuild Docker images with latest changes
-3. Restart containers with updated images
-4. Verify successful deployment
-5. Report status and handle any errors
+### Configuration Requirements
+- **GitHub Repository**: Must be connected to Azure Static Web Apps resource
+- **API Token**: `AZURE_STATIC_WEB_APPS_API_TOKEN` secret must be configured in GitHub repository settings
+- **Build Settings**: Configured in workflow file (app_location: "/", output_location: "dist")
 
-This ensures the containerized version always reflects the latest codebase state without manual Docker commands.
+### Local Development vs. Production
+- **Local**: Use `npm run dev` for development server with hot reload
+- **Production**: Build occurs automatically in Azure during deployment
+- **Preview**: Use `npm run preview` to test production build locally
+
+This setup ensures automatic deployment of changes while maintaining the application's client-side-only architecture for security.

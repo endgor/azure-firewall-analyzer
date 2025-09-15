@@ -5,7 +5,7 @@ A web-based tool for visualizing, analyzing, and optimizing Azure Firewall polic
 
 ![React](https://img.shields.io/badge/React-19.1-blue?style=flat-square&logo=react)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.8-blue?style=flat-square&logo=typescript)
-![Docker](https://img.shields.io/badge/Docker-Ready-blue?style=flat-square&logo=docker)
+![Azure Static Web Apps](https://img.shields.io/badge/Azure-Static_Web_Apps-blue?style=flat-square&logo=microsoftazure)
 
 ## 🎯 What This Tool Does
 
@@ -43,29 +43,28 @@ npm run dev
 
 Open http://localhost:5173 in your browser.
 
-### Option 2: Docker (Recommended for Production Use)
+### Option 2: Production Build (Local Testing)
 
-#### Production Build
 ```bash
-# Build and run with docker-compose
-docker-compose up --build
+# Build for production
+npm run build
+
+# Preview the production build
+npm run preview
 ```
 
-The application will be available at http://localhost:3000
+Access at http://localhost:4173 to test the production build locally.
 
-#### Development with Hot Reload
-```bash
-# Run development server in Docker
-docker-compose --profile dev up azure-firewall-analyzer-dev
-```
+### Option 3: Azure Static Web Apps (Automatic Deployment)
 
-Access at http://localhost:5173 with automatic code reloading.
+The application is configured for automatic deployment to Azure Static Web Apps:
 
-### Option 3: Manual Docker Build
-```bash
-docker build -t azure-firewall-analyzer .
-docker run -p 3000:80 azure-firewall-analyzer
-```
+1. Fork this repository to your GitHub account
+2. Create an Azure Static Web Apps resource in Azure Portal
+3. Connect your GitHub repository during the creation process
+4. Azure will automatically deploy on every push to the main branch
+
+The GitHub Actions workflow (`.github/workflows/azure-static-web-apps.yml`) handles the build and deployment automatically.
 
 ## 📋 How to Use
 

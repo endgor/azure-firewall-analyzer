@@ -136,7 +136,7 @@ tmp/
 !tsconfig*.json
 !tailwind.config.js
 !postcss.config.js
-!docker-compose.yml
+!staticwebapp.config.json
 
 # Test output directories
 test-results/
@@ -144,9 +144,8 @@ test-results/
 # Vitest specific
 .vitest/
 
-# Docker volumes/data
-docker-data/
-volumes/
+# Azure Static Web Apps CLI
+.swa/
 
 # OS files (additional)
 **/.DS_Store
