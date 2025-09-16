@@ -1,3 +1,5 @@
+import type { CSSProperties } from 'react';
+
 // Azure Firewall Policy Types
 
 export type RuleType = 'ApplicationRule' | 'NetworkRule' | 'NatRule';
@@ -137,7 +139,7 @@ export interface FirewallPolicy {
   tags?: Record<string, string>;
   identity?: {
     type: string;
-    userAssignedIdentities: Record<string, any>;
+    userAssignedIdentities: Record<string, unknown>;
   };
   properties: FirewallPolicyProperties;
   ruleCollectionGroups: RuleCollectionGroup[];
@@ -269,7 +271,7 @@ export interface FlowNode {
     processingOrder?: number;
     expanded?: boolean;
   };
-  style?: Record<string, any>;
+  style?: CSSProperties;
 }
 
 export interface FlowEdge {
@@ -277,6 +279,6 @@ export interface FlowEdge {
   source: string;
   target: string;
   type?: string;
-  style?: Record<string, any>;
+  style?: CSSProperties;
   label?: string;
 }

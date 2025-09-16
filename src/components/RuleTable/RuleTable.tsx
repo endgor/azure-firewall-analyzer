@@ -18,6 +18,7 @@ import type {
   ActionType 
 } from '../../types/firewall.types';
 import { SingleSelectDropdown } from '../common/Dropdown';
+import { buildRuleSearchIndex, fuzzyMatch } from '../../utils/fuzzySearch';
 
 interface RuleTableProps {
   groups: ProcessedRuleCollectionGroup[];
@@ -76,27 +77,25 @@ export const RuleTable: React.FC<RuleTableProps> = ({
     setExpandedCollections(new Set());
   };
 
+  const searchTokens = useMemo(() => {
+    const trimmed = searchQuery.trim().toLowerCase();
+    if (!trimmed) {
+      return [];
+    }
+    return trimmed.split(/\s+/).filter(Boolean);
+  }, [searchQuery]);
+
   const filteredGroups = useMemo(() => {
     return groups.map(group => {
       const filteredCollections = group.processedCollections.map(collection => {
         const filteredRules = collection.processedRules.filter(rule => {
           // Search filter
-          if (searchQuery) {
-            const query = searchQuery.toLowerCase();
-            const matchesSearch = 
-              rule.name.toLowerCase().includes(query) ||
-              rule.collectionName.toLowerCase().includes(query) ||
-              rule.collectionGroupName.toLowerCase().includes(query) ||
-              (rule.ruleType === 'ApplicationRule' && rule.targetFqdns?.some((fqdn: string) => fqdn.toLowerCase().includes(query))) ||
-              (rule.ruleType === 'ApplicationRule' && rule.fqdnTags?.some((tag: string) => tag.toLowerCase().includes(query))) ||
-              (rule.ruleType === 'NetworkRule' && [
-                ...(rule.sourceAddresses || []),
-                ...(rule.sourceIpGroups || []),
-                ...(rule.destinationAddresses || []),
-                ...(rule.destinationIpGroups || []),
-                ...(rule.destinationFqdns || []),
-              ].some((addr: string) => addr.toLowerCase().includes(query)));
-            
+          if (searchTokens.length) {
+            const searchIndex = buildRuleSearchIndex(rule, { collection, group });
+            const matchesSearch = searchTokens.every(token =>
+              searchIndex.some(value => fuzzyMatch(value, token))
+            );
+
             if (!matchesSearch) return false;
           }
 
@@ -137,7 +136,7 @@ export const RuleTable: React.FC<RuleTableProps> = ({
         processedCollections: filteredCollections
       };
     }).filter(group => group.processedCollections.length > 0); // Hide groups with no matching collections
-  }, [groups, searchQuery, filterByType, filterByAction]);
+  }, [groups, searchTokens, filterByType, filterByAction]);
 
   const getRuleTypeIcon = (ruleType: RuleType) => {
     switch (ruleType) {
@@ -180,7 +179,7 @@ export const RuleTable: React.FC<RuleTableProps> = ({
     const maxCount = Math.max(...Object.values(ruleCounts));
     if (maxCount === 0) return 'mixed';
     
-    const dominantType = Object.entries(ruleCounts).find(([_, count]) => count === maxCount)?.[0];
+    const dominantType = Object.entries(ruleCounts).find(([, count]) => count === maxCount)?.[0];
     return dominantType || 'mixed';
   };
 
@@ -200,16 +199,17 @@ export const RuleTable: React.FC<RuleTableProps> = ({
 
   const formatRuleDetails = (rule: ProcessedRule) => {
     switch (rule.ruleType) {
-      case 'ApplicationRule':
-        const protocols = rule.protocols?.map((p: any) => `${p.protocolType}:${p.port}`).join(', ') || '';
+      case 'ApplicationRule': {
+        const protocols = rule.protocols?.map(protocol => `${protocol.protocolType}:${protocol.port}`).join(', ') || '';
         const fqdnTargets = rule.targetFqdns || [];
         const serviceTagTargets = (rule.fqdnTags || []).map(tag => `${tag} (tag)`);
         const combinedTargets = [...fqdnTargets, ...serviceTagTargets];
         const targetSummary = combinedTargets.length > 0 ? combinedTargets.slice(0, 3).join(', ') : 'Any';
         const hasAdditionalTargets = combinedTargets.length > 3;
         return `${protocols} → ${targetSummary}${hasAdditionalTargets ? '...' : ''}`;
+      }
 
-      case 'NetworkRule':
+      case 'NetworkRule': {
         const ports = rule.destinationPorts?.slice(0, 3).join(', ') || '';
         const destinationList = [
           ...(rule.destinationAddresses || []),
@@ -221,10 +221,14 @@ export const RuleTable: React.FC<RuleTableProps> = ({
           : 'Any';
         const hasAdditionalDestinations = destinationList.length > 2;
         return `${rule.ipProtocols?.join(',') || ''}:${ports} → ${destinationSummary}${hasAdditionalDestinations ? '...' : ''}`;
-      
-      case 'NatRule':
-        return `${rule.ipProtocols?.join(',') || ''}:${rule.destinationPorts?.join(',') || ''} → ${rule.translatedAddress}:${rule.translatedPort}`;
-      
+      }
+
+      case 'NatRule': {
+        const protocolSummary = rule.ipProtocols?.join(',') || '';
+        const portSummary = rule.destinationPorts?.join(',') || '';
+        return `${protocolSummary}:${portSummary} → ${rule.translatedAddress}:${rule.translatedPort}`;
+      }
+
       default:
         return '';
     }
