@@ -357,9 +357,13 @@ function App() {
             </div>
 
             {/* Main Content Layout */}
-            <div className="flex gap-6 h-[calc(100vh-16rem)]">
+            <div className={`flex gap-6 h-[calc(100vh-16rem)] ${
+              state.currentView === 'issues' ? 'overflow-hidden' : ''
+            }`}>
               {/* Current View */}
               <div className={`transition-all duration-300 ${
+                state.currentView === 'issues' ? 'h-full overflow-hidden' : ''
+              } ${
                 state.currentView === 'issues'
                   ? (state.selectedRule ? 'w-2/3' : 'w-full')
                   : state.currentView === 'editor'
@@ -382,10 +386,12 @@ function App() {
                     selectedRuleId={state.selectedRule?.id}
                   />
                 ) : state.currentView === 'issues' && state.ruleAnalysis ? (
-                  <IssuesView
-                    analysis={state.ruleAnalysis}
-                    onRuleSelect={handleRuleSelect}
-                  />
+                  <div className="h-full w-full">
+                    <IssuesView
+                      analysis={state.ruleAnalysis}
+                      onRuleSelect={handleRuleSelect}
+                    />
+                  </div>
                 ) : state.currentView === 'editor' ? (
                   <RuleEditor
                     groups={state.processedGroups}
@@ -397,7 +403,7 @@ function App() {
 
               {/* Side Panel for Selected Rule Details in Issues View */}
               {state.selectedRule && state.currentView === 'issues' && (
-                <div className="w-1/3 bg-white rounded-lg shadow-sm border border-gray-200 p-6 sticky top-6 h-fit max-h-[calc(100vh-8rem)] overflow-y-auto">
+                <div className="sticky top-4 w-1/3 max-h-[calc(100vh-12rem)] overflow-y-auto rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-lg font-medium text-gray-900">
                       Rule Details
