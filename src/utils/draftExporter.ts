@@ -148,6 +148,9 @@ export function generateAzureCLICommands(
         if (rule.targetFqdns && rule.targetFqdns.length > 0) {
           commands.push(`  --target-fqdns ${rule.targetFqdns.map(f => `"${f}"`).join(' ')} \\`);
         }
+        if (rule.fqdnTags && rule.fqdnTags.length > 0) {
+          commands.push(`  --fqdn-tags ${rule.fqdnTags.map(tag => `"${tag}"`).join(' ')} \\`);
+        }
         if (rule.protocols && rule.protocols.length > 0) {
           const protocolStrs = rule.protocols.map((p: any) => `${p.protocolType}=${p.port}`);
           commands.push(`  --protocols ${protocolStrs.join(' ')} \\`);

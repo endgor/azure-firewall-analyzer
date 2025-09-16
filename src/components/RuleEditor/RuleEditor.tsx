@@ -320,13 +320,22 @@ export function RuleEditor({ groups, policyName, onRulesChange }: RuleEditorProp
                   {/* Destination */}
                   <td className="px-3 py-4">
                     {rule.ruleType === 'ApplicationRule' ? (
-                      <input
-                        type="text"
-                        value={rule.targetFqdns?.join(', ') || ''}
-                        onChange={(e) => handleFieldChange(rule.id, 'targetFqdns', e.target.value.split(',').map(s => s.trim()).filter(Boolean))}
-                        className="w-full p-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        placeholder="Target FQDNs"
-                      />
+                      <div className="space-y-2">
+                        <input
+                          type="text"
+                          value={rule.targetFqdns?.join(', ') || ''}
+                          onChange={(e) => handleFieldChange(rule.id, 'targetFqdns', e.target.value.split(',').map(s => s.trim()).filter(Boolean))}
+                          className="w-full p-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          placeholder="Target FQDNs"
+                        />
+                        <input
+                          type="text"
+                          value={rule.fqdnTags?.join(', ') || ''}
+                          onChange={(e) => handleFieldChange(rule.id, 'fqdnTags', e.target.value.split(',').map(s => s.trim()).filter(Boolean))}
+                          className="w-full p-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          placeholder="Service tags"
+                        />
+                      </div>
                     ) : rule.ruleType === 'NetworkRule' ? (
                       <div className="space-y-2">
                         <input

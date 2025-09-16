@@ -4,6 +4,7 @@ export interface RuleFingerprint {
   sourceAddresses: string[];
   destinationAddresses: string[];
   destinationFqdns: string[];
+  serviceTags: string[];
   destinationPorts: string[];
   ipProtocols: string[];
   ruleType: string;
@@ -180,6 +181,7 @@ export class RuleAnalyzer {
         ...(rule.targetFqdns || []),
         ...(rule.destinationFqdns || []),
       ]))),
+      serviceTags: this.normalizeServiceTags(rule.fqdnTags || []),
       ruleType: rule.ruleType
     };
   }
@@ -222,6 +224,7 @@ export class RuleAnalyzer {
       dp: fingerprint.destinationPorts,
       ip: fingerprint.ipProtocols,
       fq: fingerprint.destinationFqdns,
+      st: fingerprint.serviceTags,
       rt: fingerprint.ruleType
     });
   }
@@ -237,6 +240,7 @@ export class RuleAnalyzer {
       destinationPorts: data.dp,
       ipProtocols: data.ip,
       destinationFqdns: data.fq,
+      serviceTags: data.st,
       ruleType: data.rt
     };
   }
@@ -277,6 +281,8 @@ export class RuleAnalyzer {
       ? fingerprint.destinationAddresses.slice(0, 2).join(', ') + (fingerprint.destinationAddresses.length > 2 ? '...' : '')
       : fingerprint.destinationFqdns.length > 0
       ? fingerprint.destinationFqdns.slice(0, 2).join(', ') + (fingerprint.destinationFqdns.length > 2 ? '...' : '')
+      : fingerprint.serviceTags.length > 0
+      ? fingerprint.serviceTags.slice(0, 2).join(', ') + (fingerprint.serviceTags.length > 2 ? '...' : '')
       : 'Any';
     
     const portDesc = fingerprint.destinationPorts.length > 0
@@ -377,6 +383,12 @@ export class RuleAnalyzer {
       return false;
     }
 
+    // Ensure service tags overlap when present
+    const serviceTagsOverlap = this.hasArrayOverlap(fp1.serviceTags, fp2.serviceTags);
+    if ((fp1.serviceTags.length > 0 || fp2.serviceTags.length > 0) && !serviceTagsOverlap) {
+      return false;
+    }
+
     // Check ports overlap
     if (!this.hasArrayOverlap(fp1.destinationPorts, fp2.destinationPorts)) {
       return false;
@@ -398,9 +410,17 @@ export class RuleAnalyzer {
       this.arraysEqual(fp1.sourceAddresses, fp2.sourceAddresses) &&
       this.arraysEqual(fp1.destinationAddresses, fp2.destinationAddresses) &&
       this.arraysEqual(fp1.destinationFqdns, fp2.destinationFqdns) &&
+      this.arraysEqual(fp1.serviceTags, fp2.serviceTags) &&
       this.arraysEqual(fp1.destinationPorts, fp2.destinationPorts) &&
       this.arraysEqual(fp1.ipProtocols, fp2.ipProtocols)
     );
+  }
+
+  /**
+   * Normalize service tags for comparison
+   */
+  private static normalizeServiceTags(tags: string[]): string[] {
+    return tags.map(tag => tag.toLowerCase().trim()).sort();
   }
 
   /**

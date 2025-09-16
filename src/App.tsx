@@ -122,7 +122,12 @@ function App() {
     if (!rule) return 'Any';
 
     if (rule.ruleType === 'ApplicationRule') {
-      return rule.targetFqdns?.join('\n') || 'Any';
+      const destinations = [
+        ...(rule.targetFqdns || []),
+        ...(rule.fqdnTags || []).map(tag => `${tag} (tag)`),
+      ];
+
+      return destinations.length > 0 ? destinations.join('\n') : 'Any';
     }
 
     if (rule.ruleType === 'NetworkRule') {
@@ -477,6 +482,12 @@ function App() {
                               </div>
                             </div>
                             <div>
+                              <span className="text-gray-500 block mb-1">Service Tags:</span>
+                              <div className="p-2 bg-gray-50 rounded text-xs font-mono max-h-32 overflow-y-auto">
+                                {state.selectedRule.fqdnTags?.join('\n') || 'None'}
+                              </div>
+                            </div>
+                            <div>
                               <span className="text-gray-500 block mb-1">Protocols:</span>
                               <div className="p-2 bg-gray-50 rounded text-xs font-mono">
                                 {state.selectedRule.protocols?.map((p: any) => `${p.protocolType}:${p.port}`).join(', ') || 'None'}
@@ -616,6 +627,12 @@ function App() {
                               <span className="text-gray-500 block mb-1">Target FQDNs:</span>
                               <div className="p-2 bg-gray-50 rounded text-xs font-mono max-h-32 overflow-y-auto">
                                 {state.selectedRule.targetFqdns?.join('\n') || 'None'}
+                              </div>
+                            </div>
+                            <div>
+                              <span className="text-gray-500 block mb-1">Service Tags:</span>
+                              <div className="p-2 bg-gray-50 rounded text-xs font-mono max-h-32 overflow-y-auto">
+                                {state.selectedRule.fqdnTags?.join('\n') || 'None'}
                               </div>
                             </div>
                             <div>

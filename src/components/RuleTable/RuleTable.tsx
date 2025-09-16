@@ -88,6 +88,7 @@ export const RuleTable: React.FC<RuleTableProps> = ({
               rule.collectionName.toLowerCase().includes(query) ||
               rule.collectionGroupName.toLowerCase().includes(query) ||
               (rule.ruleType === 'ApplicationRule' && rule.targetFqdns?.some((fqdn: string) => fqdn.toLowerCase().includes(query))) ||
+              (rule.ruleType === 'ApplicationRule' && rule.fqdnTags?.some((tag: string) => tag.toLowerCase().includes(query))) ||
               (rule.ruleType === 'NetworkRule' && [
                 ...(rule.sourceAddresses || []),
                 ...(rule.sourceIpGroups || []),
@@ -201,9 +202,13 @@ export const RuleTable: React.FC<RuleTableProps> = ({
     switch (rule.ruleType) {
       case 'ApplicationRule':
         const protocols = rule.protocols?.map((p: any) => `${p.protocolType}:${p.port}`).join(', ') || '';
-        const targets = rule.targetFqdns && rule.targetFqdns.length > 0 ? rule.targetFqdns.slice(0, 3).join(', ') : 'Any';
-        return `${protocols} → ${targets}${rule.targetFqdns && rule.targetFqdns.length > 3 ? '...' : ''}`;
-      
+        const fqdnTargets = rule.targetFqdns || [];
+        const serviceTagTargets = (rule.fqdnTags || []).map(tag => `${tag} (tag)`);
+        const combinedTargets = [...fqdnTargets, ...serviceTagTargets];
+        const targetSummary = combinedTargets.length > 0 ? combinedTargets.slice(0, 3).join(', ') : 'Any';
+        const hasAdditionalTargets = combinedTargets.length > 3;
+        return `${protocols} → ${targetSummary}${hasAdditionalTargets ? '...' : ''}`;
+
       case 'NetworkRule':
         const ports = rule.destinationPorts?.slice(0, 3).join(', ') || '';
         const destinationList = [

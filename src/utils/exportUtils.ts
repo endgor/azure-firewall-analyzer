@@ -94,7 +94,11 @@ function formatRuleFields(rule: ProcessedRule) {
       return destinations.join(', ');
     }
     if (rule.ruleType === 'ApplicationRule') {
-      return rule.targetFqdns?.join(', ') || '';
+      const destinations = [
+        ...(rule.targetFqdns || []),
+        ...(rule.fqdnTags || []).map(tag => `ServiceTag:${tag}`),
+      ];
+      return destinations.join(', ');
     }
     return '';
   };
