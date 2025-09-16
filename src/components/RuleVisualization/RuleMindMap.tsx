@@ -17,6 +17,18 @@ import type {
   ProcessedRule 
 } from '../../types/firewall.types';
 
+const POLICY_NODE_WIDTH = 240;
+const GROUP_NODE_WIDTH = 220;
+const COLLECTION_NODE_WIDTH = 200;
+const RULE_NODE_WIDTH = 140;
+const GROUP_HORIZONTAL_PADDING = 120;
+const GROUP_GAP = 90;
+const RULES_PER_ROW = 3;
+const RULE_HORIZONTAL_SPACING = 160;
+const RULE_ROW_HEIGHT = 100;
+const GROUP_TO_COLLECTION_OFFSET = 160;
+const COLLECTION_VERTICAL_GAP = 200;
+
 interface RuleMindMapProps {
   groups: ProcessedRuleCollectionGroup[];
   policyName: string;
@@ -77,14 +89,66 @@ export const RuleMindMap: React.FC<RuleMindMapProps> = ({ groups, policyName, on
 
     // Calculate layout dimensions
     const sortedGroups = [...groups].sort((a, b) => a.priority - b.priority);
-    const totalGroups = sortedGroups.length;
-    
-    // Use hierarchical layout instead of circular
     const startY = 100;
-    // Dynamic group width based on collapsed state - tighter spacing when collapsed
-    const allGroupsCollapsed = sortedGroups.every(g => collapsedGroups.has(`group-${g.id}`));
-    const groupWidth = allGroupsCollapsed ? 200 : 300;
-    
+
+    // Pre-compute width needs for each group so rule clusters don't overlap adjacent groups
+    const groupMetrics = sortedGroups.map(group => {
+      const groupId = `group-${group.id}`;
+      const isGroupCollapsed = collapsedGroups.has(groupId);
+      const sortedCollections = [...group.processedCollections].sort((a, b) => {
+        const categoryOrder = { 'DNAT': 0, 'Network': 1, 'Application': 2 };
+        const aCategoryOrder = categoryOrder[a.ruleCategory as keyof typeof categoryOrder] ?? 3;
+        const bCategoryOrder = categoryOrder[b.ruleCategory as keyof typeof categoryOrder] ?? 3;
+
+        if (aCategoryOrder !== bCategoryOrder) {
+          return aCategoryOrder - bCategoryOrder;
+        }
+        return a.priority - b.priority;
+      });
+
+      if (isGroupCollapsed) {
+        return {
+          group,
+          groupId,
+          sortedCollections,
+          isGroupCollapsed,
+          width: GROUP_NODE_WIDTH + GROUP_HORIZONTAL_PADDING,
+          centerX: 0,
+        };
+      }
+
+      const widestCollectionColumns = sortedCollections.reduce((max, collection) => {
+        const collectionId = `collection-${collection.id}`;
+        if (collapsedCollections.has(collectionId) || collection.processedRules.length === 0) {
+          return Math.max(max, 1);
+        }
+        const columns = Math.max(1, Math.min(RULES_PER_ROW, collection.processedRules.length));
+        return Math.max(max, columns);
+      }, 1);
+
+      const ruleWidth = widestCollectionColumns * RULE_HORIZONTAL_SPACING;
+      return {
+        group,
+        groupId,
+        sortedCollections,
+        isGroupCollapsed,
+        width: Math.max(GROUP_NODE_WIDTH, COLLECTION_NODE_WIDTH, ruleWidth) + GROUP_HORIZONTAL_PADDING,
+        centerX: 0,
+      };
+    });
+
+    let runningX = 0;
+    groupMetrics.forEach((metric, index) => {
+      const centerX = runningX + metric.width / 2;
+      metric.centerX = centerX;
+      runningX += metric.width;
+      if (index < groupMetrics.length - 1) {
+        runningX += GROUP_GAP;
+      }
+    });
+
+    const totalWidth = runningX || POLICY_NODE_WIDTH;
+
     // Central policy node at top
     const policyNode: Node<CustomNodeData> = {
       id: 'policy',
@@ -93,7 +157,7 @@ export const RuleMindMap: React.FC<RuleMindMapProps> = ({ groups, policyName, on
         label: policyName,
         type: 'policy',
       },
-      position: { x: groupWidth * Math.max(3, totalGroups) / 2 - 100, y: startY },
+      position: { x: (totalWidth / 2) - (POLICY_NODE_WIDTH / 2), y: startY },
       style: {
         background: '#1e40af',
         color: '#ffffff',
@@ -102,20 +166,16 @@ export const RuleMindMap: React.FC<RuleMindMapProps> = ({ groups, policyName, on
         fontSize: '16px',
         fontWeight: 'bold',
         padding: '16px 20px',
-        width: 200,
+        width: POLICY_NODE_WIDTH,
         textAlign: 'center',
         minHeight: '60px'
       }
     };
     nodes.push(policyNode);
 
-    // Position groups horizontally across the screen
-    sortedGroups.forEach((group, groupIndex) => {
-      const groupId = `group-${group.id}`;
-      const isCollapsed = collapsedGroups.has(groupId);
-      
-      // Calculate horizontal position for groups
-      const groupX = (groupIndex + 1) * groupWidth;
+    // Position groups horizontally across the screen using the computed widths
+    groupMetrics.forEach(({ group, groupId, sortedCollections, isGroupCollapsed, centerX }) => {
+      const groupX = centerX;
       const groupY = startY + 150;
 
       const totalRules = group.processedCollections.reduce((sum, col) => sum + col.processedRules.length, 0);
@@ -124,12 +184,12 @@ export const RuleMindMap: React.FC<RuleMindMapProps> = ({ groups, policyName, on
         id: groupId,
         type: 'default',
         data: {
-          label: `${isCollapsed ? '▶' : '▼'} ${group.name}\nPriority: ${group.priority}\n${totalRules} rules`,
+          label: `${isGroupCollapsed ? '▶' : '▼'} ${group.name}\nPriority: ${group.priority}\n${totalRules} rules`,
           type: 'group',
           priority: group.priority,
           ruleCount: totalRules
         },
-        position: { x: groupX - 100, y: groupY },
+        position: { x: groupX - (GROUP_NODE_WIDTH / 2), y: groupY },
         style: {
           background: group.isParentPolicy ? '#7c3aed' : '#059669',
           color: '#ffffff',
@@ -137,7 +197,7 @@ export const RuleMindMap: React.FC<RuleMindMapProps> = ({ groups, policyName, on
           borderRadius: '10px',
           fontSize: '13px',
           padding: '12px 16px',
-          width: 180,
+          width: GROUP_NODE_WIDTH,
           textAlign: 'center',
           whiteSpace: 'pre-line',
           cursor: 'pointer',
@@ -161,30 +221,17 @@ export const RuleMindMap: React.FC<RuleMindMapProps> = ({ groups, policyName, on
       });
 
       // Skip collections if group is collapsed
-      if (isCollapsed) {
+      if (isGroupCollapsed) {
         return;
       }
 
-      // Add collections vertically below each group
-      const sortedCollections = [...group.processedCollections].sort((a, b) => {
-        // Sort by category first (DNAT -> Network -> Application), then by priority
-        const categoryOrder = { 'DNAT': 0, 'Network': 1, 'Application': 2 };
-        const aCategoryOrder = categoryOrder[a.ruleCategory as keyof typeof categoryOrder] ?? 3;
-        const bCategoryOrder = categoryOrder[b.ruleCategory as keyof typeof categoryOrder] ?? 3;
-        
-        if (aCategoryOrder !== bCategoryOrder) {
-          return aCategoryOrder - bCategoryOrder;
-        }
-        return a.priority - b.priority;
-      });
+      let collectionYOffset = groupY + GROUP_TO_COLLECTION_OFFSET;
 
-      sortedCollections.forEach((collection, collectionIndex) => {
+      sortedCollections.forEach((collection) => {
         const collectionId = `collection-${collection.id}`;
         const isCollectionCollapsed = collapsedCollections.has(collectionId);
-        
-        // Position collections vertically below the group with spacing
         const collectionX = groupX;
-        const collectionY = groupY + 120 + (collectionIndex * 140);
+        const collectionY = collectionYOffset;
 
         const categoryColors = {
           DNAT: { bg: '#dbeafe', border: '#3b82f6', text: '#1e40af' },
@@ -204,7 +251,7 @@ export const RuleMindMap: React.FC<RuleMindMapProps> = ({ groups, policyName, on
             ruleCategory: collection.ruleCategory,
             ruleCount: collection.processedRules.length
           },
-          position: { x: collectionX - 90, y: collectionY },
+          position: { x: collectionX - (COLLECTION_NODE_WIDTH / 2), y: collectionY },
           style: {
             background: colors.bg,
             color: colors.text,
@@ -212,7 +259,7 @@ export const RuleMindMap: React.FC<RuleMindMapProps> = ({ groups, policyName, on
             borderRadius: '8px',
             fontSize: '11px',
             padding: '8px 12px',
-            width: 160,
+            width: COLLECTION_NODE_WIDTH,
             textAlign: 'center',
             whiteSpace: 'pre-line',
             cursor: 'pointer',
@@ -237,23 +284,22 @@ export const RuleMindMap: React.FC<RuleMindMapProps> = ({ groups, policyName, on
 
         // Skip rules if collection is collapsed
         if (isCollectionCollapsed) {
+          collectionYOffset += COLLECTION_VERTICAL_GAP;
           return;
         }
 
-        // Add rules horizontally to the right of each collection
-        const rulesPerRow = Math.min(5, collection.processedRules.length); // Max 5 rules per row
-        const ruleSpacing = 120;
-        const ruleRowHeight = 80;
+        // Add rules in a centered grid beneath the collection
+        const visibleRules = collection.processedRules;
+        const ruleColumns = Math.min(RULES_PER_ROW, Math.max(1, visibleRules.length));
+        const ruleRows = Math.ceil(visibleRules.length / ruleColumns);
 
-        collection.processedRules.forEach((rule, ruleIndex) => {
+        visibleRules.forEach((rule, ruleIndex) => {
           const ruleId = `rule-${rule.id}`;
-          
-          // Calculate position in grid
-          const row = Math.floor(ruleIndex / rulesPerRow);
-          const col = ruleIndex % rulesPerRow;
-          
-          const ruleX = collectionX + 200 + (col * ruleSpacing);
-          const ruleY = collectionY - 30 + (row * ruleRowHeight);
+          const row = Math.floor(ruleIndex / ruleColumns);
+          const col = ruleIndex % ruleColumns;
+          const columnOffset = (ruleColumns - 1) / 2;
+          const ruleX = collectionX + ((col - columnOffset) * RULE_HORIZONTAL_SPACING) - (RULE_NODE_WIDTH / 2);
+          const ruleY = collectionY + 110 + (row * RULE_ROW_HEIGHT);
 
           const ruleNode: Node<CustomNodeData> = {
             id: ruleId,
@@ -264,7 +310,7 @@ export const RuleMindMap: React.FC<RuleMindMapProps> = ({ groups, policyName, on
               rule: rule,
               priority: rule.processingOrder
             },
-            position: { x: ruleX - 50, y: ruleY },
+            position: { x: ruleX, y: ruleY },
             style: {
               background: rule.id === selectedRuleId ? '#fbbf24' : colors.bg,
               color: colors.text,
@@ -272,7 +318,7 @@ export const RuleMindMap: React.FC<RuleMindMapProps> = ({ groups, policyName, on
               borderRadius: '6px',
               fontSize: '9px',
               padding: '6px 8px',
-              width: 100,
+              width: RULE_NODE_WIDTH,
               textAlign: 'center',
               whiteSpace: 'pre-line',
               cursor: 'pointer',
@@ -286,11 +332,14 @@ export const RuleMindMap: React.FC<RuleMindMapProps> = ({ groups, policyName, on
             id: `${collectionId}-${ruleId}`,
             source: collectionId,
             target: ruleId,
-            type: 'straight',
+            type: 'smoothstep',
             animated: false,
             style: { stroke: colors.border, strokeWidth: 1 },
           });
         });
+
+        const occupiedHeight = (ruleRows > 0 ? ruleRows * RULE_ROW_HEIGHT : 0);
+        collectionYOffset += COLLECTION_VERTICAL_GAP + occupiedHeight;
       });
     });
 
@@ -465,4 +514,3 @@ export const RuleMindMap: React.FC<RuleMindMapProps> = ({ groups, policyName, on
     </div>
   );
 };
-
