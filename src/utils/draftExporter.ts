@@ -160,6 +160,9 @@ export function generateAzureCLICommands(
         if (rule.destinationFqdns && rule.destinationFqdns.length > 0) {
           commands.push(`  --destination-fqdns ${rule.destinationFqdns.map(f => `"${f}"`).join(' ')} \\`);
         }
+        if (rule.destinationIpGroups && rule.destinationIpGroups.length > 0) {
+          commands.push(`  --destination-ip-groups ${rule.destinationIpGroups.map(g => `"${g}"`).join(' ')} \\`);
+        }
         if (rule.destinationPorts && rule.destinationPorts.length > 0) {
           commands.push(`  --destination-ports ${rule.destinationPorts.map(p => `"${p}"`).join(' ')} \\`);
         }
@@ -185,14 +188,22 @@ export function generateAzureCLICommands(
         }
       }
       
-      if (rule.sourceAddresses && rule.sourceAddresses.length > 0) {
-        commands.push(`  --source-addresses ${rule.sourceAddresses.map(a => `"${a}"`).join(' ')}`);
+      const hasSourceAddresses = !!(rule.sourceAddresses && rule.sourceAddresses.length > 0);
+      const hasSourceIpGroups = !!(rule.sourceIpGroups && rule.sourceIpGroups.length > 0);
+
+      if (hasSourceAddresses && hasSourceIpGroups) {
+        commands.push(`  --source-addresses ${rule.sourceAddresses!.map(a => `"${a}"`).join(' ')} \\`);
+        commands.push(`  --source-ip-groups ${rule.sourceIpGroups!.map(g => `"${g}"`).join(' ')}`);
+      } else if (hasSourceAddresses) {
+        commands.push(`  --source-addresses ${rule.sourceAddresses!.map(a => `"${a}"`).join(' ')}`);
+      } else if (hasSourceIpGroups) {
+        commands.push(`  --source-ip-groups ${rule.sourceIpGroups!.map(g => `"${g}"`).join(' ')}`);
       } else {
         // Remove the trailing backslash from the last line
         const lastLine = commands[commands.length - 1];
         commands[commands.length - 1] = lastLine.replace(' \\', '');
       }
-      
+
       commands.push('');
     });
     

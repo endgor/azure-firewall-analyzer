@@ -161,9 +161,19 @@ export class RuleAnalyzer {
    * Generate a network fingerprint for a rule
    */
   private static generateRuleFingerprint(rule: ProcessedRule): RuleFingerprint {
+    const sourceItems = [
+      ...(rule.sourceAddresses || []),
+      ...(rule.sourceIpGroups || []),
+    ];
+
+    const destinationItems = [
+      ...(rule.destinationAddresses || []),
+      ...(rule.destinationIpGroups || []),
+    ];
+
     return {
-      sourceAddresses: this.normalizeAddresses(rule.sourceAddresses || []),
-      destinationAddresses: this.normalizeAddresses(rule.destinationAddresses || []),
+      sourceAddresses: this.normalizeAddresses(sourceItems),
+      destinationAddresses: this.normalizeAddresses(destinationItems),
       destinationPorts: this.normalizePorts(rule.destinationPorts || []),
       ipProtocols: this.normalizeProtocols(rule.ipProtocols || []),
       destinationFqdns: Array.from(new Set(this.normalizeFqdns([

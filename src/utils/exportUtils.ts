@@ -72,7 +72,11 @@ function getDuplicateRecommendedAction(duplicateGroup: DuplicateGroup): string {
 function formatRuleFields(rule: ProcessedRule) {
   const getSourceAddresses = () => {
     if (rule.ruleType === 'NetworkRule') {
-      return rule.sourceAddresses?.join(', ') || '';
+      const sources = [
+        ...(rule.sourceAddresses || []),
+        ...(rule.sourceIpGroups || []),
+      ];
+      return sources.join(', ');
     }
     if (rule.ruleType === 'ApplicationRule') {
       return rule.sourceAddresses?.join(', ') || '';
@@ -84,6 +88,7 @@ function formatRuleFields(rule: ProcessedRule) {
     if (rule.ruleType === 'NetworkRule') {
       const destinations = [
         ...(rule.destinationAddresses || []),
+        ...(rule.destinationIpGroups || []),
         ...(rule.destinationFqdns || []),
       ];
       return destinations.join(', ');

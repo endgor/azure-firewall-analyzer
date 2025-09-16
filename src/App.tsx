@@ -107,6 +107,17 @@ function App() {
 
   const stats = getPolicyStats();
 
+  const getSourceDisplay = useCallback((rule: ProcessedRule | null) => {
+    if (!rule) return 'Any';
+
+    const sources = [
+      ...(rule.sourceAddresses || []),
+      ...(rule.sourceIpGroups || []),
+    ];
+
+    return sources.length > 0 ? sources.join('\n') : 'Any';
+  }, []);
+
   const getDestinationDisplay = useCallback((rule: ProcessedRule | null) => {
     if (!rule) return 'Any';
 
@@ -511,7 +522,7 @@ function App() {
                         <div>
                           <span className="text-gray-500 block mb-1">Source Addresses:</span>
                           <div className="p-2 bg-gray-50 rounded text-xs font-mono max-h-32 overflow-y-auto">
-                            {state.selectedRule.sourceAddresses?.join('\n') || 'Any'}
+                            {getSourceDisplay(state.selectedRule)}
                           </div>
                         </div>
                         <div>
@@ -653,7 +664,7 @@ function App() {
                         <div>
                           <span className="text-gray-500 block mb-1">Source Addresses:</span>
                           <div className="p-2 bg-gray-50 rounded text-xs font-mono max-h-32 overflow-y-auto">
-                            {state.selectedRule.sourceAddresses?.join('\n') || 'Any'}
+                            {getSourceDisplay(state.selectedRule)}
                           </div>
                         </div>
                         <div>

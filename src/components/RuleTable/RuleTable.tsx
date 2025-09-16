@@ -90,7 +90,9 @@ export const RuleTable: React.FC<RuleTableProps> = ({
               (rule.ruleType === 'ApplicationRule' && rule.targetFqdns?.some((fqdn: string) => fqdn.toLowerCase().includes(query))) ||
               (rule.ruleType === 'NetworkRule' && [
                 ...(rule.sourceAddresses || []),
+                ...(rule.sourceIpGroups || []),
                 ...(rule.destinationAddresses || []),
+                ...(rule.destinationIpGroups || []),
                 ...(rule.destinationFqdns || []),
               ].some((addr: string) => addr.toLowerCase().includes(query)));
             
@@ -206,6 +208,7 @@ export const RuleTable: React.FC<RuleTableProps> = ({
         const ports = rule.destinationPorts?.slice(0, 3).join(', ') || '';
         const destinationList = [
           ...(rule.destinationAddresses || []),
+          ...(rule.destinationIpGroups || []),
           ...(rule.destinationFqdns || []),
         ];
         const destinationSummary = destinationList.length > 0

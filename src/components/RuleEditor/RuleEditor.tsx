@@ -289,13 +289,32 @@ export function RuleEditor({ groups, policyName, onRulesChange }: RuleEditorProp
                   
                   {/* Source */}
                   <td className="px-3 py-4">
-                    <input
-                      type="text"
-                      value={rule.sourceAddresses?.join(', ') || ''}
-                      onChange={(e) => handleFieldChange(rule.id, 'sourceAddresses', e.target.value.split(',').map(s => s.trim()).filter(Boolean))}
-                      className="w-full p-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      placeholder="Source addresses"
-                    />
+                    {rule.ruleType === 'NetworkRule' ? (
+                      <div className="space-y-2">
+                        <input
+                          type="text"
+                          value={rule.sourceAddresses?.join(', ') || ''}
+                          onChange={(e) => handleFieldChange(rule.id, 'sourceAddresses', e.target.value.split(',').map(s => s.trim()).filter(Boolean))}
+                          className="w-full p-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          placeholder="Source addresses"
+                        />
+                        <input
+                          type="text"
+                          value={rule.sourceIpGroups?.join(', ') || ''}
+                          onChange={(e) => handleFieldChange(rule.id, 'sourceIpGroups', e.target.value.split(',').map(s => s.trim()).filter(Boolean))}
+                          className="w-full p-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          placeholder="Source IP groups"
+                        />
+                      </div>
+                    ) : (
+                      <input
+                        type="text"
+                        value={rule.sourceAddresses?.join(', ') || ''}
+                        onChange={(e) => handleFieldChange(rule.id, 'sourceAddresses', e.target.value.split(',').map(s => s.trim()).filter(Boolean))}
+                        className="w-full p-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        placeholder="Source addresses"
+                      />
+                    )}
                   </td>
                   
                   {/* Destination */}
@@ -308,30 +327,37 @@ export function RuleEditor({ groups, policyName, onRulesChange }: RuleEditorProp
                         className="w-full p-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                         placeholder="Target FQDNs"
                       />
+                    ) : rule.ruleType === 'NetworkRule' ? (
+                      <div className="space-y-2">
+                        <input
+                          type="text"
+                          value={rule.destinationAddresses?.join(', ') || ''}
+                          onChange={(e) => handleFieldChange(rule.id, 'destinationAddresses', e.target.value.split(',').map(s => s.trim()).filter(Boolean))}
+                          className="w-full p-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          placeholder="Destination addresses"
+                        />
+                        <input
+                          type="text"
+                          value={rule.destinationIpGroups?.join(', ') || ''}
+                          onChange={(e) => handleFieldChange(rule.id, 'destinationIpGroups', e.target.value.split(',').map(s => s.trim()).filter(Boolean))}
+                          className="w-full p-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          placeholder="Destination IP groups"
+                        />
+                        <input
+                          type="text"
+                          value={rule.destinationFqdns?.join(', ') || ''}
+                          onChange={(e) => handleFieldChange(rule.id, 'destinationFqdns', e.target.value.split(',').map(s => s.trim()).filter(Boolean))}
+                          className="w-full p-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          placeholder="Destination FQDNs"
+                        />
+                      </div>
                     ) : (
                       <input
                         type="text"
-                        value={(() => {
-                          if (rule.destinationAddresses && rule.destinationAddresses.length > 0) {
-                            return rule.destinationAddresses.join(', ');
-                          }
-                          if (rule.destinationFqdns && rule.destinationFqdns.length > 0) {
-                            return rule.destinationFqdns.join(', ');
-                          }
-                          return '';
-                        })()}
-                        onChange={(e) => {
-                          const values = e.target.value.split(',').map(s => s.trim()).filter(Boolean);
-                          if (rule.destinationAddresses && rule.destinationAddresses.length > 0) {
-                            handleFieldChange(rule.id, 'destinationAddresses', values);
-                          } else if (rule.destinationFqdns && rule.destinationFqdns.length > 0) {
-                            handleFieldChange(rule.id, 'destinationFqdns', values);
-                          } else {
-                            handleFieldChange(rule.id, 'destinationAddresses', values);
-                          }
-                        }}
+                        value={rule.destinationAddresses?.join(', ') || ''}
+                        onChange={(e) => handleFieldChange(rule.id, 'destinationAddresses', e.target.value.split(',').map(s => s.trim()).filter(Boolean))}
                         className="w-full p-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        placeholder="Destination addresses or FQDNs"
+                        placeholder="Destination addresses"
                       />
                     )}
                   </td>
