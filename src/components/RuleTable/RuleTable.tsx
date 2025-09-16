@@ -88,7 +88,11 @@ export const RuleTable: React.FC<RuleTableProps> = ({
               rule.collectionName.toLowerCase().includes(query) ||
               rule.collectionGroupName.toLowerCase().includes(query) ||
               (rule.ruleType === 'ApplicationRule' && rule.targetFqdns?.some((fqdn: string) => fqdn.toLowerCase().includes(query))) ||
-              (rule.ruleType === 'NetworkRule' && [...(rule.sourceAddresses || []), ...(rule.destinationAddresses || [])].some((addr: string) => addr.toLowerCase().includes(query)));
+              (rule.ruleType === 'NetworkRule' && [
+                ...(rule.sourceAddresses || []),
+                ...(rule.destinationAddresses || []),
+                ...(rule.destinationFqdns || []),
+              ].some((addr: string) => addr.toLowerCase().includes(query)));
             
             if (!matchesSearch) return false;
           }
@@ -200,10 +204,15 @@ export const RuleTable: React.FC<RuleTableProps> = ({
       
       case 'NetworkRule':
         const ports = rule.destinationPorts?.slice(0, 3).join(', ') || '';
-        const destinations = rule.destinationAddresses && rule.destinationAddresses.length > 0 
-          ? rule.destinationAddresses.slice(0, 2).join(', ')
+        const destinationList = [
+          ...(rule.destinationAddresses || []),
+          ...(rule.destinationFqdns || []),
+        ];
+        const destinationSummary = destinationList.length > 0
+          ? destinationList.slice(0, 2).join(', ')
           : 'Any';
-        return `${rule.ipProtocols?.join(',') || ''}:${ports} → ${destinations}${rule.destinationAddresses && rule.destinationAddresses.length > 2 ? '...' : ''}`;
+        const hasAdditionalDestinations = destinationList.length > 2;
+        return `${rule.ipProtocols?.join(',') || ''}:${ports} → ${destinationSummary}${hasAdditionalDestinations ? '...' : ''}`;
       
       case 'NatRule':
         return `${rule.ipProtocols?.join(',') || ''}:${rule.destinationPorts?.join(',') || ''} → ${rule.translatedAddress}:${rule.translatedPort}`;

@@ -311,10 +311,27 @@ export function RuleEditor({ groups, policyName, onRulesChange }: RuleEditorProp
                     ) : (
                       <input
                         type="text"
-                        value={rule.destinationAddresses?.join(', ') || ''}
-                        onChange={(e) => handleFieldChange(rule.id, 'destinationAddresses', e.target.value.split(',').map(s => s.trim()).filter(Boolean))}
+                        value={(() => {
+                          if (rule.destinationAddresses && rule.destinationAddresses.length > 0) {
+                            return rule.destinationAddresses.join(', ');
+                          }
+                          if (rule.destinationFqdns && rule.destinationFqdns.length > 0) {
+                            return rule.destinationFqdns.join(', ');
+                          }
+                          return '';
+                        })()}
+                        onChange={(e) => {
+                          const values = e.target.value.split(',').map(s => s.trim()).filter(Boolean);
+                          if (rule.destinationAddresses && rule.destinationAddresses.length > 0) {
+                            handleFieldChange(rule.id, 'destinationAddresses', values);
+                          } else if (rule.destinationFqdns && rule.destinationFqdns.length > 0) {
+                            handleFieldChange(rule.id, 'destinationFqdns', values);
+                          } else {
+                            handleFieldChange(rule.id, 'destinationAddresses', values);
+                          }
+                        }}
                         className="w-full p-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        placeholder="Destination addresses"
+                        placeholder="Destination addresses or FQDNs"
                       />
                     )}
                   </td>

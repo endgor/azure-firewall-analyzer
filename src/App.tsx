@@ -107,6 +107,26 @@ function App() {
 
   const stats = getPolicyStats();
 
+  const getDestinationDisplay = useCallback((rule: ProcessedRule | null) => {
+    if (!rule) return 'Any';
+
+    if (rule.ruleType === 'ApplicationRule') {
+      return rule.targetFqdns?.join('\n') || 'Any';
+    }
+
+    if (rule.ruleType === 'NetworkRule') {
+      const destinations = [
+        ...(rule.destinationAddresses || []),
+        ...(rule.destinationFqdns || []),
+        ...(rule.destinationIpGroups || []),
+      ];
+
+      return destinations.length > 0 ? destinations.join('\n') : 'Any';
+    }
+
+    return rule.destinationAddresses?.join('\n') || 'Any';
+  }, []);
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -497,12 +517,7 @@ function App() {
                         <div>
                           <span className="text-gray-500 block mb-1">Destination Addresses:</span>
                           <div className="p-2 bg-gray-50 rounded text-xs font-mono max-h-32 overflow-y-auto">
-                            {state.selectedRule.ruleType === 'ApplicationRule' 
-                              ? (state.selectedRule.targetFqdns?.join('\n') || 'Any')
-                              : state.selectedRule.ruleType === 'NetworkRule'
-                              ? (state.selectedRule.destinationAddresses?.join('\n') || 'Any')
-                              : (state.selectedRule.destinationAddresses?.join('\n') || 'Any')
-                            }
+                            {getDestinationDisplay(state.selectedRule)}
                           </div>
                         </div>
                       </div>
@@ -644,12 +659,7 @@ function App() {
                         <div>
                           <span className="text-gray-500 block mb-1">Destination Addresses:</span>
                           <div className="p-2 bg-gray-50 rounded text-xs font-mono max-h-32 overflow-y-auto">
-                            {state.selectedRule.ruleType === 'ApplicationRule' 
-                              ? (state.selectedRule.targetFqdns?.join('\n') || 'Any')
-                              : state.selectedRule.ruleType === 'NetworkRule'
-                              ? (state.selectedRule.destinationAddresses?.join('\n') || 'Any')
-                              : (state.selectedRule.destinationAddresses?.join('\n') || 'Any')
-                            }
+                            {getDestinationDisplay(state.selectedRule)}
                           </div>
                         </div>
                       </div>

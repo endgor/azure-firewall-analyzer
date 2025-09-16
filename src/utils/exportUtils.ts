@@ -82,7 +82,11 @@ function formatRuleFields(rule: ProcessedRule) {
 
   const getDestinationAddresses = () => {
     if (rule.ruleType === 'NetworkRule') {
-      return rule.destinationAddresses?.join(', ') || '';
+      const destinations = [
+        ...(rule.destinationAddresses || []),
+        ...(rule.destinationFqdns || []),
+      ];
+      return destinations.join(', ');
     }
     if (rule.ruleType === 'ApplicationRule') {
       return rule.targetFqdns?.join(', ') || '';

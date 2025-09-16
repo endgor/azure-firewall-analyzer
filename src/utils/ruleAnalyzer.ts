@@ -3,9 +3,9 @@ import type { ProcessedRule, ProcessedRuleCollectionGroup } from '../types/firew
 export interface RuleFingerprint {
   sourceAddresses: string[];
   destinationAddresses: string[];
+  destinationFqdns: string[];
   destinationPorts: string[];
   ipProtocols: string[];
-  targetFqdns: string[];
   ruleType: string;
 }
 
@@ -166,7 +166,10 @@ export class RuleAnalyzer {
       destinationAddresses: this.normalizeAddresses(rule.destinationAddresses || []),
       destinationPorts: this.normalizePorts(rule.destinationPorts || []),
       ipProtocols: this.normalizeProtocols(rule.ipProtocols || []),
-      targetFqdns: this.normalizeFqdns(rule.targetFqdns || []),
+      destinationFqdns: Array.from(new Set(this.normalizeFqdns([
+        ...(rule.targetFqdns || []),
+        ...(rule.destinationFqdns || []),
+      ]))),
       ruleType: rule.ruleType
     };
   }
@@ -208,7 +211,7 @@ export class RuleAnalyzer {
       da: fingerprint.destinationAddresses,
       dp: fingerprint.destinationPorts,
       ip: fingerprint.ipProtocols,
-      fq: fingerprint.targetFqdns,
+      fq: fingerprint.destinationFqdns,
       rt: fingerprint.ruleType
     });
   }
@@ -223,7 +226,7 @@ export class RuleAnalyzer {
       destinationAddresses: data.da,
       destinationPorts: data.dp,
       ipProtocols: data.ip,
-      targetFqdns: data.fq,
+      destinationFqdns: data.fq,
       ruleType: data.rt
     };
   }
@@ -262,8 +265,8 @@ export class RuleAnalyzer {
     
     const destDesc = fingerprint.destinationAddresses.length > 0
       ? fingerprint.destinationAddresses.slice(0, 2).join(', ') + (fingerprint.destinationAddresses.length > 2 ? '...' : '')
-      : fingerprint.targetFqdns.length > 0
-      ? fingerprint.targetFqdns.slice(0, 2).join(', ') + (fingerprint.targetFqdns.length > 2 ? '...' : '')
+      : fingerprint.destinationFqdns.length > 0
+      ? fingerprint.destinationFqdns.slice(0, 2).join(', ') + (fingerprint.destinationFqdns.length > 2 ? '...' : '')
       : 'Any';
     
     const portDesc = fingerprint.destinationPorts.length > 0
@@ -358,8 +361,8 @@ export class RuleAnalyzer {
     }
 
     // Check destination addresses/FQDNs overlap
-    const dest1 = [...fp1.destinationAddresses, ...fp1.targetFqdns];
-    const dest2 = [...fp2.destinationAddresses, ...fp2.targetFqdns];
+    const dest1 = [...fp1.destinationAddresses, ...fp1.destinationFqdns];
+    const dest2 = [...fp2.destinationAddresses, ...fp2.destinationFqdns];
     if (!this.hasArrayOverlap(dest1, dest2)) {
       return false;
     }
@@ -384,7 +387,7 @@ export class RuleAnalyzer {
     return (
       this.arraysEqual(fp1.sourceAddresses, fp2.sourceAddresses) &&
       this.arraysEqual(fp1.destinationAddresses, fp2.destinationAddresses) &&
-      this.arraysEqual(fp1.targetFqdns, fp2.targetFqdns) &&
+      this.arraysEqual(fp1.destinationFqdns, fp2.destinationFqdns) &&
       this.arraysEqual(fp1.destinationPorts, fp2.destinationPorts) &&
       this.arraysEqual(fp1.ipProtocols, fp2.ipProtocols)
     );
