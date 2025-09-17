@@ -1,10 +1,13 @@
 import type {
+  ApplicationRule,
   FirewallPolicy,
-  RuleCollectionGroup,
-  RuleCollection,
+  NatRule,
+  NetworkRule,
   ProcessedRule,
   ProcessedRuleCollection,
   ProcessedRuleCollectionGroup,
+  RuleCollection,
+  RuleCollectionGroup,
 } from '../types/firewall.types';
 
 /**
@@ -185,9 +188,13 @@ export class RuleProcessor {
           isParentPolicy,
         };
 
+        if (collection.action?.type) {
+          baseProcessedRule.action = collection.action.type;
+        }
+
         // Copy type-specific properties
         if (rule.ruleType === 'ApplicationRule') {
-          const appRule = rule as any;
+          const appRule: ApplicationRule = rule;
           baseProcessedRule.protocols = appRule.protocols;
           baseProcessedRule.fqdnTags = appRule.fqdnTags;
           baseProcessedRule.webCategories = appRule.webCategories;
@@ -196,23 +203,26 @@ export class RuleProcessor {
           baseProcessedRule.terminateTLS = appRule.terminateTLS;
           baseProcessedRule.httpHeadersToInsert = appRule.httpHeadersToInsert;
         } else if (rule.ruleType === 'NetworkRule') {
-          const netRule = rule as any;
+          const netRule: NetworkRule = rule;
           baseProcessedRule.ipProtocols = netRule.ipProtocols;
           baseProcessedRule.destinationPorts = netRule.destinationPorts;
           baseProcessedRule.destinationFqdns = netRule.destinationFqdns;
         } else if (rule.ruleType === 'NatRule') {
-          const natRule = rule as any;
+          const natRule: NatRule = rule;
           baseProcessedRule.translatedAddress = natRule.translatedAddress;
           baseProcessedRule.translatedPort = natRule.translatedPort;
           baseProcessedRule.ipProtocols = natRule.ipProtocols;
           baseProcessedRule.destinationPorts = natRule.destinationPorts;
         }
 
-        // Copy common properties
-        baseProcessedRule.sourceAddresses = (rule as any).sourceAddresses;
-        baseProcessedRule.destinationAddresses = (rule as any).destinationAddresses;
-        baseProcessedRule.sourceIpGroups = (rule as any).sourceIpGroups;
-        baseProcessedRule.destinationIpGroups = (rule as any).destinationIpGroups;
+        baseProcessedRule.sourceAddresses = rule.sourceAddresses;
+        baseProcessedRule.destinationAddresses = rule.destinationAddresses;
+        baseProcessedRule.sourceIpGroups = rule.sourceIpGroups;
+
+        if (rule.ruleType === 'NetworkRule') {
+          const netRule: NetworkRule = rule;
+          baseProcessedRule.destinationIpGroups = netRule.destinationIpGroups;
+        }
 
         return baseProcessedRule;
       });

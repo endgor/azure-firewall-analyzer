@@ -1,6 +1,11 @@
 import { useState, useCallback, useMemo } from 'react';
 import { Save, Download, Copy, Trash2, AlertCircle } from 'lucide-react';
-import type { ProcessedRule, ProcessedRuleCollectionGroup } from '../../types/firewall.types';
+import type {
+  ActionType,
+  ProcessedRule,
+  ProcessedRuleCollectionGroup,
+  ProtocolType,
+} from '../../types/firewall.types';
 import { exportToDraftJSON, generateAzureCLICommands } from '../../utils/draftExporter';
 import { SingleSelectDropdown } from '../common/Dropdown';
 
@@ -10,10 +15,12 @@ interface RuleEditorProps {
   onRulesChange: (groups: ProcessedRuleCollectionGroup[]) => void;
 }
 
-interface EditableRule extends ProcessedRule {
+type EditableProtocol = NonNullable<ProcessedRule['protocols']>[number];
+
+type EditableRule = ProcessedRule & {
   isModified?: boolean;
   isNew?: boolean;
-}
+};
 
 export function RuleEditor({ groups, policyName, onRulesChange }: RuleEditorProps) {
   const [editingRules, setEditingRules] = useState<{ [key: string]: EditableRule }>({});
@@ -24,29 +31,42 @@ export function RuleEditor({ groups, policyName, onRulesChange }: RuleEditorProp
   // Flatten all rules for editing
   const allRules = useMemo(() => {
     const rules: EditableRule[] = [];
+
     groups.forEach(group => {
-      group.ruleCollections.forEach(collection => {
-        collection.rules.forEach((rule, index) => {
-          const ruleId = `${group.name}-${collection.name}-${index}`;
-          const editedRule = editingRules[ruleId];
-          const ruleWithId = { 
-            ...rule, 
-            id: ruleId,
-            collectionGroupName: group.name,
-            collectionName: collection.name,
-            groupPriority: group.priority,
-            collectionPriority: collection.priority
+      group.processedCollections.forEach(collection => {
+        const collectionAction: ActionType | undefined = collection.ruleCollectionType === 'FirewallPolicyNatRuleCollection'
+          ? 'Dnat'
+          : collection.action?.type;
+
+        collection.processedRules.forEach(rule => {
+          const editedRule = editingRules[rule.id];
+          const ruleWithMetadata: EditableRule = {
+            ...rule,
+            action: rule.action ?? collectionAction,
           };
-          rules.push(editedRule || ruleWithId);
+
+          rules.push(editedRule || ruleWithMetadata);
         });
       });
     });
+
     return rules;
   }, [groups, editingRules]);
 
-  const handleFieldChange = useCallback((ruleId: string, field: string, value: string | string[] | any) => {
+  const toProcessedRule = useCallback((rule: EditableRule): ProcessedRule => {
+    const sanitized = { ...rule } as Record<string, unknown>;
+    delete sanitized.isModified;
+    delete sanitized.isNew;
+    return sanitized as unknown as ProcessedRule;
+  }, []);
+
+  const handleFieldChange = useCallback(<K extends keyof EditableRule>(
+    ruleId: string,
+    field: K,
+    value: EditableRule[K]
+  ) => {
     setEditingRules(prev => {
-      const existingRule = prev[ruleId] || allRules.find(r => (r as any).id === ruleId);
+      const existingRule = prev[ruleId] || allRules.find(r => r.id === ruleId);
       if (!existingRule) return prev;
 
       return {
@@ -66,21 +86,63 @@ export function RuleEditor({ groups, policyName, onRulesChange }: RuleEditorProp
   }, [allRules]);
 
   const handleSaveChanges = useCallback(() => {
-    const updatedGroups = groups.map(group => ({
-      ...group,
-      ruleCollections: group.ruleCollections.map(collection => ({
-        ...collection,
-        rules: collection.rules.map((rule, index) => {
-          const ruleId = `${group.name}-${collection.name}-${index}`;
-          const editedRule = editingRules[ruleId];
-          return editedRule || { ...rule, id: ruleId };
-        }) as any
-      }))
-    }));
+    const updatedGroups = groups.map(group => {
+      const updatedProcessedCollections = group.processedCollections.map(collection => {
+        const baseCollectionAction: ActionType | undefined = collection.ruleCollectionType === 'FirewallPolicyNatRuleCollection'
+          ? 'Dnat'
+          : collection.action?.type;
+
+        const editedAction = collection.processedRules
+          .map(rule => editingRules[rule.id])
+          .find(edited => edited?.isModified && edited.action);
+
+        const nextCollectionAction: ActionType | undefined = collection.ruleCollectionType === 'FirewallPolicyFilterRuleCollection'
+          ? (editedAction?.action ?? baseCollectionAction ?? 'Allow')
+          : baseCollectionAction;
+
+        const updatedRules: ProcessedRule[] = collection.processedRules.map(rule => {
+          const editedRule = editingRules[rule.id];
+          if (!editedRule) {
+            return {
+              ...rule,
+              action: nextCollectionAction,
+            };
+          }
+
+          const sanitizedRule = toProcessedRule({
+            ...editedRule,
+            action: editedRule.action ?? nextCollectionAction,
+          });
+
+          return {
+            ...rule,
+            ...sanitizedRule,
+          };
+        });
+
+        const updatedCollection = {
+          ...collection,
+          processedRules: updatedRules,
+        };
+
+        if (collection.ruleCollectionType === 'FirewallPolicyFilterRuleCollection') {
+          updatedCollection.action = {
+            type: (nextCollectionAction ?? 'Allow') as Extract<ActionType, 'Allow' | 'Deny'>,
+          };
+        }
+
+        return updatedCollection;
+      });
+
+      return {
+        ...group,
+        processedCollections: updatedProcessedCollections,
+      };
+    });
 
     onRulesChange(updatedGroups);
     setEditingRules({});
-  }, [groups, editingRules, onRulesChange]);
+  }, [groups, editingRules, onRulesChange, toProcessedRule]);
 
   const handleDiscardChanges = useCallback(() => {
     setEditingRules({});
@@ -90,13 +152,10 @@ export function RuleEditor({ groups, policyName, onRulesChange }: RuleEditorProp
     if (confirm('Are you sure you want to delete this rule?')) {
       const updatedGroups = groups.map(group => ({
         ...group,
-        ruleCollections: group.ruleCollections.map(collection => ({
+        processedCollections: group.processedCollections.map(collection => ({
           ...collection,
-          rules: collection.rules.filter((_rule, index) => {
-          const currentRuleId = `${group.name}-${collection.name}-${index}`;
-          return currentRuleId !== ruleId;
-        })
-        }))
+          processedRules: collection.processedRules.filter(rule => rule.id !== ruleId),
+        })),
       }));
 
       onRulesChange(updatedGroups);
@@ -124,7 +183,8 @@ export function RuleEditor({ groups, policyName, onRulesChange }: RuleEditorProp
     }
 
     // Export modified rules as draft JSON
-    const draftData = exportToDraftJSON(modifiedRules);
+    const processedRules = modifiedRules.map(toProcessedRule);
+    const draftData = exportToDraftJSON(processedRules);
     const blob = new Blob([JSON.stringify(draftData, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -134,7 +194,7 @@ export function RuleEditor({ groups, policyName, onRulesChange }: RuleEditorProp
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-  }, [editingRules, policyName, resourceGroup]);
+  }, [editingRules, policyName, resourceGroup, toProcessedRule]);
 
   const handleCopyCommands = useCallback(() => {
     if (!resourceGroup.trim()) {
@@ -149,13 +209,14 @@ export function RuleEditor({ groups, policyName, onRulesChange }: RuleEditorProp
       return;
     }
 
-    const commands = generateAzureCLICommands(modifiedRules, policyName, resourceGroup, subscriptionId);
+    const processedRules = modifiedRules.map(toProcessedRule);
+    const commands = generateAzureCLICommands(processedRules, policyName, resourceGroup, subscriptionId);
     navigator.clipboard.writeText(commands).then(() => {
       alert('Azure CLI commands copied to clipboard!');
     }).catch(() => {
       alert('Failed to copy to clipboard. Please copy manually from the export modal.');
     });
-  }, [editingRules, policyName, resourceGroup, subscriptionId]);
+  }, [editingRules, policyName, resourceGroup, subscriptionId, toProcessedRule]);
 
   const modifiedCount = Object.values(editingRules).filter(rule => rule.isModified).length;
   const hasChanges = modifiedCount > 0;
@@ -277,8 +338,8 @@ export function RuleEditor({ groups, policyName, onRulesChange }: RuleEditorProp
                       <span className="text-sm text-gray-500">DNAT</span>
                     ) : (
                       <SingleSelectDropdown
-                        value={(rule as any).action || 'Allow'}
-                        onChange={(value) => handleFieldChange(rule.id, 'action', value)}
+                        value={rule.action || 'Allow'}
+                        onChange={(value) => handleFieldChange(rule.id, 'action', value as ActionType)}
                         options={[
                           { value: 'Allow', label: 'Allow' },
                           { value: 'Deny', label: 'Deny' }
@@ -376,11 +437,11 @@ export function RuleEditor({ groups, policyName, onRulesChange }: RuleEditorProp
                     {rule.ruleType === 'ApplicationRule' ? (
                       <input
                         type="text"
-                        value={rule.protocols?.map((p: any) => p.protocolType).join(', ') || ''}
+                        value={rule.protocols?.map(protocol => protocol.protocolType).join(', ') || ''}
                         onChange={(e) => {
                           const types = e.target.value.split(',').map(s => s.trim()).filter(Boolean);
-                          const protocols = types.map(type => ({
-                            protocolType: type,
+                          const protocols: EditableProtocol[] = types.map(type => ({
+                            protocolType: type as ProtocolType,
                             port: type === 'Http' ? 80 : type === 'Https' ? 443 : 80
                           }));
                           handleFieldChange(rule.id, 'protocols', protocols);
@@ -404,13 +465,13 @@ export function RuleEditor({ groups, policyName, onRulesChange }: RuleEditorProp
                     {rule.ruleType === 'ApplicationRule' ? (
                       <input
                         type="text"
-                        value={rule.protocols?.map((p: any) => p.port || '80').join(', ') || ''}
+                        value={rule.protocols?.map(protocol => protocol.port || 80).join(', ') || ''}
                         onChange={(e) => {
                           const ports = e.target.value.split(',').map(s => s.trim()).filter(Boolean);
-                          const updatedProtocols = rule.protocols?.map((p: any, index: number) => ({
-                            ...p,
+                          const updatedProtocols: EditableProtocol[] = (rule.protocols || []).map((protocol, index: number) => ({
+                            ...protocol,
                             port: parseInt(ports[index] || ports[0] || '80', 10)
-                          })) || [];
+                          }));
                           handleFieldChange(rule.id, 'protocols', updatedProtocols);
                         }}
                         className="w-full p-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"

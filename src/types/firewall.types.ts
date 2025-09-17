@@ -191,6 +191,7 @@ export interface ProcessedRule {
   groupPriority: number;
   collectionPriority: number;
   isParentPolicy: boolean;
+  action?: ActionType;
 }
 
 export interface ProcessedRuleCollection {

@@ -1,45 +1,176 @@
 import type { 
-  FirewallPolicy, 
-  RuleCollectionGroup, 
-  RuleCollection,
-  FirewallRule,
+  ActionType,
   ApplicationRule,
-  NetworkRule,
-  NatRule,
+  FirewallPolicy, 
+  FirewallRule,
   FilterRuleCollection,
-  NatRuleCollection
+  IdpsMode,
+  NatRule,
+  NatRuleCollection,
+  NetworkRule,
+  ProtocolType,
+  RuleCollection,
+  RuleCollectionGroup,
+  ThreatIntelMode,
 } from '../types/firewall.types';
 
 interface AzureTemplate {
   $schema: string;
   contentVersion: string;
-  parameters: Record<string, any>;
-  variables?: Record<string, any>;
-  resources: any[];
+  parameters: Record<string, AzureParameterDefinition>;
+  variables?: Record<string, unknown>;
+  resources: AzureResource[];
 }
 
 interface AzureFirewallPolicyResource {
-  type: string;
+  type: 'Microsoft.Network/firewallPolicies';
   apiVersion: string;
   name: string;
   location: string;
   tags?: Record<string, string>;
-  identity?: any;
-  properties: any;
+  identity?: AzureFirewallPolicyIdentity;
+  properties: AzureFirewallPolicyPropertiesRaw;
   dependsOn?: string[];
 }
 
 interface AzureRuleCollectionGroupResource {
-  type: string;
+  type: 'Microsoft.Network/firewallPolicies/ruleCollectionGroups';
   apiVersion: string;
   name: string;
   location: string;
   dependsOn: string[];
   properties: {
     priority: number;
-    ruleCollections: any[];
+    ruleCollections: AzureRuleCollectionRaw[];
   };
 }
+
+type AzureResource = AzureFirewallPolicyResource | AzureRuleCollectionGroupResource | Record<string, unknown>;
+
+type AzureParameterValue = string | number | boolean | Record<string, unknown> | unknown[];
+
+interface AzureParameterDefinition {
+  type?: string;
+  defaultValue?: AzureParameterValue;
+  value?: AzureParameterValue;
+  [key: string]: unknown;
+}
+
+interface AzureFirewallPolicyIdentity {
+  type?: string;
+  userAssignedIdentities?: Record<string, unknown>;
+  [key: string]: unknown;
+}
+
+interface AzureFirewallPolicyPropertiesRaw {
+  sku?: { tier?: string };
+  threatIntelMode?: string;
+  dnsSettings?: {
+    servers?: string[];
+    enableProxy?: boolean;
+  };
+  snat?: {
+    privateRanges?: string[];
+  };
+  intrusionDetection?: {
+    mode?: string;
+    configuration?: {
+      signatureOverrides?: Array<Record<string, unknown>>;
+      bypassTrafficSettings?: Array<Record<string, unknown>>;
+    };
+  };
+  transportSecurity?: {
+    certificateAuthority: {
+      name: string;
+      keyVaultSecretId: string;
+    };
+  };
+}
+
+interface AzureRuleCollectionRaw {
+  name: string;
+  priority: number;
+  ruleCollectionType: 'FirewallPolicyFilterRuleCollection' | 'FirewallPolicyNatRuleCollection';
+  action?: {
+    type?: ActionType;
+  };
+  rules?: AzureRuleRaw[];
+}
+
+interface AzureRuleBaseRaw {
+  name: string;
+  description?: string;
+  ruleType: string;
+}
+
+interface AzureApplicationRuleRaw extends AzureRuleBaseRaw {
+  ruleType: 'ApplicationRule';
+  protocols?: Array<{ protocolType: ProtocolType | string; port: number }>;
+  fqdnTags?: string[];
+  webCategories?: string[];
+  targetFqdns?: string[];
+  targetUrls?: string[];
+  terminateTLS?: boolean;
+  sourceAddresses?: string[];
+  destinationAddresses?: string[];
+  sourceIpGroups?: string[];
+  httpHeadersToInsert?: Array<{ name: string; value: string }>;
+}
+
+interface AzureNetworkRuleRaw extends AzureRuleBaseRaw {
+  ruleType: 'NetworkRule';
+  ipProtocols?: string[];
+  sourceAddresses?: string[];
+  destinationAddresses?: string[];
+  sourceIpGroups?: string[];
+  destinationIpGroups?: string[];
+  destinationPorts?: string[];
+  destinationFqdns?: string[];
+}
+
+interface AzureNatRuleRaw extends AzureRuleBaseRaw {
+  ruleType: 'NatRule';
+  translatedAddress?: string;
+  translatedPort?: string;
+  ipProtocols?: string[];
+  sourceAddresses?: string[];
+  sourceIpGroups?: string[];
+  destinationAddresses?: string[];
+  destinationPorts?: string[];
+}
+
+type AzureRuleRaw = AzureApplicationRuleRaw | AzureNetworkRuleRaw | AzureNatRuleRaw;
+
+const isFirewallPolicyResource = (resource: AzureResource): resource is AzureFirewallPolicyResource => {
+  return typeof resource === 'object' && resource !== null && 'type' in resource && resource.type === 'Microsoft.Network/firewallPolicies';
+};
+
+const isRuleCollectionGroupResource = (
+  resource: AzureResource
+): resource is AzureRuleCollectionGroupResource => {
+  return typeof resource === 'object' && resource !== null && 'type' in resource && resource.type === 'Microsoft.Network/firewallPolicies/ruleCollectionGroups';
+};
+
+const toStringArray = (value: unknown): string[] => {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return value
+    .map(item => (typeof item === 'string' ? item : String(item ?? '')).trim())
+    .filter(Boolean);
+};
+
+const isThreatIntelMode = (value: unknown): value is ThreatIntelMode => {
+  return value === 'Off' || value === 'Alert' || value === 'Deny';
+};
+
+const isIdpsMode = (value: unknown): value is IdpsMode => {
+  return value === 'Off' || value === 'Alert' || value === 'Deny';
+};
+
+const assertUnreachable = (value: never): never => {
+  throw new Error(`Unknown value: ${String(value)}`);
+};
 
 export class FirewallPolicyParser {
   /**
@@ -54,18 +185,14 @@ export class FirewallPolicyParser {
       }
 
       // Find the main firewall policy resource
-      const policyResource = template.resources.find(
-        (resource) => resource.type === 'Microsoft.Network/firewallPolicies'
-      ) as AzureFirewallPolicyResource;
+      const policyResource = template.resources.find(isFirewallPolicyResource);
 
       if (!policyResource) {
         throw new Error('No firewall policy found in template');
       }
 
       // Find rule collection group resources
-      const ruleCollectionGroupResources = template.resources.filter(
-        (resource) => resource.type === 'Microsoft.Network/firewallPolicies/ruleCollectionGroups'
-      ) as AzureRuleCollectionGroupResource[];
+      const ruleCollectionGroupResources = template.resources.filter(isRuleCollectionGroupResource);
 
       // Parse the main policy
       const policy: FirewallPolicy = {
@@ -74,7 +201,12 @@ export class FirewallPolicyParser {
         name: this.extractPolicyName(policyResource.name, template.parameters),
         location: policyResource.location,
         tags: policyResource.tags,
-        identity: policyResource.identity,
+        identity: policyResource.identity
+          ? {
+              type: policyResource.identity.type ?? 'None',
+              userAssignedIdentities: policyResource.identity.userAssignedIdentities ?? {},
+            }
+          : undefined,
         properties: this.parseFirewallPolicyProperties(policyResource.properties),
         ruleCollectionGroups: ruleCollectionGroupResources.map(this.parseRuleCollectionGroup.bind(this))
       };
@@ -93,7 +225,10 @@ export class FirewallPolicyParser {
   /**
    * Extract policy name from ARM template expression
    */
-  private static extractPolicyName(nameExpression: string, parameters?: any): string {
+  private static extractPolicyName(
+    nameExpression: string,
+    parameters?: Record<string, AzureParameterDefinition>
+  ): string {
     // Handle ARM template expressions like "[parameters('firewallPolicies_name')]"
     if (nameExpression.startsWith('[') && nameExpression.endsWith(']')) {
       const match = nameExpression.match(/parameters\('([^']+)'\)/);
@@ -101,7 +236,7 @@ export class FirewallPolicyParser {
         const paramName = match[1];
         // Look up the parameter's defaultValue in the parameters section
         const paramDef = parameters[paramName];
-        if (paramDef && paramDef.defaultValue) {
+        if (paramDef && typeof paramDef.defaultValue === 'string') {
           return paramDef.defaultValue;
         }
         // Fall back to parameter name if no defaultValue found
@@ -114,30 +249,89 @@ export class FirewallPolicyParser {
   /**
    * Parse firewall policy properties
    */
-  private static parseFirewallPolicyProperties(properties: any): FirewallPolicy['properties'] {
+  private static parseFirewallPolicyProperties(
+    properties: AzureFirewallPolicyPropertiesRaw
+  ): FirewallPolicy['properties'] {
+    const threatIntelMode = isThreatIntelMode(properties.threatIntelMode)
+      ? properties.threatIntelMode
+      : 'Alert';
+
+    const intrusionDetection = properties.intrusionDetection
+      ? {
+          mode: isIdpsMode(properties.intrusionDetection.mode)
+            ? properties.intrusionDetection.mode
+            : 'Off',
+          configuration: properties.intrusionDetection.configuration
+            ? {
+                signatureOverrides: (properties.intrusionDetection.configuration.signatureOverrides || [])
+                  .map(rawOverride => {
+                    const override = rawOverride as { id?: unknown; mode?: unknown };
+                    const id = typeof override.id === 'string' ? override.id : String(override.id ?? '');
+                    if (!id) return null;
+                    const mode = isIdpsMode(override.mode) ? override.mode : 'Alert';
+                    return {
+                      id,
+                      mode,
+                    };
+                  })
+                  .filter((override): override is { id: string; mode: IdpsMode } => Boolean(override)),
+                bypassTrafficSettings: (properties.intrusionDetection.configuration.bypassTrafficSettings || [])
+                  .map(rawSetting => {
+                    const setting = rawSetting as {
+                      name?: unknown;
+                      protocol?: unknown;
+                      sourceAddresses?: unknown;
+                      destinationAddresses?: unknown;
+                      sourceIpGroups?: unknown;
+                      destinationIpGroups?: unknown;
+                      destinationPorts?: unknown;
+                    };
+                    const name = typeof setting.name === 'string' ? setting.name : String(setting.name ?? '');
+                    const protocol = typeof setting.protocol === 'string' ? setting.protocol : String(setting.protocol ?? '');
+                    if (!name || !protocol) return null;
+                    return {
+                      name,
+                      protocol,
+                      sourceAddresses: toStringArray(setting.sourceAddresses),
+                      destinationAddresses: toStringArray(setting.destinationAddresses),
+                      sourceIpGroups: toStringArray(setting.sourceIpGroups),
+                      destinationIpGroups: toStringArray(setting.destinationIpGroups),
+                      destinationPorts: toStringArray(setting.destinationPorts),
+                    };
+                  })
+                  .filter((setting): setting is {
+                    name: string;
+                    protocol: string;
+                    sourceAddresses: string[];
+                    destinationAddresses: string[];
+                    sourceIpGroups: string[];
+                    destinationIpGroups: string[];
+                    destinationPorts: string[];
+                  } => Boolean(setting)),
+              }
+            : undefined,
+        }
+      : undefined;
+
     return {
       sku: {
-        tier: properties.sku?.tier || 'Standard'
+        tier: properties.sku?.tier === 'Premium' || properties.sku?.tier === 'Basic'
+          ? properties.sku.tier
+          : 'Standard'
       },
-      threatIntelMode: properties.threatIntelMode || 'Alert',
+      threatIntelMode,
       dnsSettings: properties.dnsSettings ? {
-        servers: properties.dnsSettings.servers || [],
-        enableProxy: properties.dnsSettings.enableProxy || false
+        servers: toStringArray(properties.dnsSettings.servers),
+        enableProxy: properties.dnsSettings.enableProxy ?? false
       } : undefined,
       snat: properties.snat ? {
-        privateRanges: properties.snat.privateRanges || []
+        privateRanges: toStringArray(properties.snat.privateRanges)
       } : undefined,
-      intrusionDetection: properties.intrusionDetection ? {
-        mode: properties.intrusionDetection.mode || 'Off',
-        configuration: properties.intrusionDetection.configuration ? {
-          signatureOverrides: properties.intrusionDetection.configuration.signatureOverrides || [],
-          bypassTrafficSettings: properties.intrusionDetection.configuration.bypassTrafficSettings || []
-        } : undefined
-      } : undefined,
+      intrusionDetection,
       transportSecurity: properties.transportSecurity ? {
         certificateAuthority: {
-          name: properties.transportSecurity.certificateAuthority.name,
-          keyVaultSecretId: properties.transportSecurity.certificateAuthority.keyVaultSecretId
+          name: properties.transportSecurity.certificateAuthority?.name || '',
+          keyVaultSecretId: properties.transportSecurity.certificateAuthority?.keyVaultSecretId || ''
         }
       } : undefined
     };
@@ -153,7 +347,7 @@ export class FirewallPolicyParser {
       name: groupName,
       priority: resource.properties.priority,
       ruleCollections: resource.properties.ruleCollections.map(
-        (collection) => this.parseRuleCollection(collection, groupName)
+        (collection) => this.parseRuleCollection(collection)
       )
     };
   }
@@ -163,7 +357,7 @@ export class FirewallPolicyParser {
    */
   private static extractGroupName(nameExpression: string): string {
     // Handle expressions like "[concat(parameters('policy_name'), '/DefaultApplicationRuleCollectionGroup')]"
-    const match = nameExpression.match(/\/([^'\/]+)'\)]/);
+    const match = nameExpression.match(/\/([^'/]+)'\)]/);
     if (match) {
       return match[1];
     }
@@ -180,11 +374,11 @@ export class FirewallPolicyParser {
   /**
    * Parse rule collection
    */
-  private static parseRuleCollection(collection: any, _groupName: string): RuleCollection {
+  private static parseRuleCollection(collection: AzureRuleCollectionRaw): RuleCollection {
     const baseCollection = {
       name: collection.name,
       priority: collection.priority,
-      rules: collection.rules?.map((rule: any) => this.parseRule(rule)) || []
+      rules: (collection.rules || []).map(rule => this.parseRule(rule))
     };
 
     if (collection.ruleCollectionType === 'FirewallPolicyFilterRuleCollection') {
@@ -211,7 +405,7 @@ export class FirewallPolicyParser {
   /**
    * Parse individual rule
    */
-  private static parseRule(rule: any): FirewallRule {
+  private static parseRule(rule: AzureRuleRaw): FirewallRule {
     const baseRule = {
       name: rule.name,
       description: rule.description
@@ -222,7 +416,10 @@ export class FirewallPolicyParser {
         return {
           ...baseRule,
           ruleType: 'ApplicationRule',
-          protocols: rule.protocols || [],
+          protocols: rule.protocols?.map(protocol => ({
+            protocolType: protocol.protocolType as ProtocolType,
+            port: protocol.port,
+          })) || [],
           fqdnTags: rule.fqdnTags || [],
           webCategories: rule.webCategories || [],
           targetFqdns: rule.targetFqdns || [],
@@ -261,7 +458,7 @@ export class FirewallPolicyParser {
         } as NatRule;
 
       default:
-        throw new Error(`Unknown rule type: ${rule.ruleType}`);
+        return assertUnreachable(rule as never);
     }
   }
 

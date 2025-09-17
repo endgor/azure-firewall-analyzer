@@ -10,7 +10,7 @@ import {
   ConnectionLineType,
   MarkerType
 } from 'reactflow';
-import type { Node, Edge } from 'reactflow';
+import type { Connection, Edge, Node, ReactFlowInstance } from 'reactflow';
 import 'reactflow/dist/style.css';
 import type { 
   ProcessedRuleCollectionGroup, 
@@ -50,7 +50,7 @@ const nodeTypes = {
 };
 
 export const RuleMindMap: React.FC<RuleMindMapProps> = ({ groups, policyName, onRuleSelect, selectedRuleId }) => {
-  const reactFlowInstance = useRef<any>(null);
+  const reactFlowInstance = useRef<ReactFlowInstance | null>(null);
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
   const [collapsedCollections, setCollapsedCollections] = useState<Set<string>>(new Set());
   const [showControls, setShowControls] = useState<boolean>(true);
@@ -367,7 +367,7 @@ export const RuleMindMap: React.FC<RuleMindMapProps> = ({ groups, policyName, on
   }, [initialNodes, originalNodes.length]);
 
   const onConnect = useCallback(
-    (params: any) => setEdges((eds) => addEdge(params, eds)),
+    (params: Connection) => setEdges(eds => addEdge(params, eds)),
     [setEdges]
   );
 
@@ -387,9 +387,7 @@ export const RuleMindMap: React.FC<RuleMindMapProps> = ({ groups, policyName, on
     setReactFlowKey(prev => prev + 1); // Force re-render
     // Fit view after expanding to show all nodes
     setTimeout(() => {
-      if (reactFlowInstance.current) {
-        reactFlowInstance.current.fitView({ padding: 0.1 });
-      }
+      reactFlowInstance.current?.fitView({ padding: 0.1 });
     }, 200);
   }, []);
 
@@ -417,16 +415,14 @@ export const RuleMindMap: React.FC<RuleMindMapProps> = ({ groups, policyName, on
     
     // Reset to original node positions if available
     setTimeout(() => {
-      if (reactFlowInstance.current) {
-        // Reset zoom and position to initial state
-        reactFlowInstance.current.setViewport({ x: 0, y: 0, zoom: 1 });
-        
-        // Force a re-render by updating nodes to their recalculated positions
-        // This will be triggered by the useMemo when collapse states reset
-        setTimeout(() => {
-          reactFlowInstance.current.fitView({ padding: 0.1 });
-        }, 100);
-      }
+      // Reset zoom and position to initial state
+      reactFlowInstance.current?.setViewport({ x: 0, y: 0, zoom: 1 });
+
+      // Force a re-render by updating nodes to their recalculated positions
+      // This will be triggered by the useMemo when collapse states reset
+      setTimeout(() => {
+        reactFlowInstance.current?.fitView({ padding: 0.1 });
+      }, 100);
     }, 100);
   }, []);
 

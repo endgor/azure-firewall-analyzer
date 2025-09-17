@@ -11,7 +11,7 @@ interface DraftRuleData {
       action?: {
         type: string;
       };
-      rules: any[];
+      rules: unknown[];
     }[];
   }[];
 }
@@ -152,7 +152,7 @@ export function generateAzureCLICommands(
           commands.push(`  --fqdn-tags ${rule.fqdnTags.map(tag => `"${tag}"`).join(' ')} \\`);
         }
         if (rule.protocols && rule.protocols.length > 0) {
-          const protocolStrs = rule.protocols.map((p: any) => `${p.protocolType}=${p.port}`);
+          const protocolStrs = rule.protocols.map(protocol => `${protocol.protocolType}=${protocol.port}`);
           commands.push(`  --protocols ${protocolStrs.join(' ')} \\`);
         }
       } else if (rule.ruleType === 'NetworkRule') {
@@ -254,10 +254,10 @@ function getActionType(rule: ProcessedRule): string {
   }
   
   // For Network and Application rules, check action property or default to Allow
-  return (rule as any).action || 'Allow';
+  return rule.action || 'Allow';
 }
 
-function convertRuleToAzureFormat(rule: ProcessedRule): any {
+function convertRuleToAzureFormat(rule: ProcessedRule): Record<string, unknown> {
   const baseRule = {
     name: rule.name,
     ruleType: rule.ruleType,
@@ -294,7 +294,9 @@ function convertRuleToAzureFormat(rule: ProcessedRule): any {
         destinationPorts: rule.destinationPorts || [],
         translatedAddress: rule.translatedAddress,
         translatedPort: rule.translatedPort,
-        translatedFqdn: (rule as any).translatedFqdn
+        ...(typeof (rule as { translatedFqdn?: string }).translatedFqdn === 'string'
+          ? { translatedFqdn: (rule as { translatedFqdn?: string }).translatedFqdn }
+          : {})
       };
 
     default:

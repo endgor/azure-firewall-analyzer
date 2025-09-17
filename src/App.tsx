@@ -638,7 +638,7 @@ function App() {
                             <div>
                               <span className="text-gray-500 block mb-1">Protocols:</span>
                               <div className="p-2 bg-gray-50 rounded text-xs font-mono">
-                                {state.selectedRule.protocols?.map((p: any) => `${p.protocolType}:${p.port}`).join(', ') || 'None'}
+                                {state.selectedRule.protocols?.map(protocol => `${protocol.protocolType}:${protocol.port}`).join(', ') || 'None'}
                               </div>
                             </div>
                           </>
